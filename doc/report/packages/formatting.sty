@@ -1,0 +1,103 @@
+\ProvidesPackage{packages/formatting}
+
+% ---------- Header and Footer ----------
+\pagestyle{fancy}
+\fancyhf{}  % 기본값 초기화
+
+% 헤더
+\fancyhead[L]{\small\textit{MECH407 - Introduction to Mobile Systems}}
+
+% 푸터
+\fancyfoot[C]{\thepage}
+
+% 헤더 구분선 두께
+% \renewcommand{\headrulewidth}{0.4pt}
+% \renewcommand{\footrulewidth}{0pt}
+
+% 표지/목차는 헤더 없이
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+% ---------- Abstract ----------
+\renewenvironment{abstract}{%
+  \begin{center}
+    {\large\bfseries Abstract}\\[0.8em]
+  \end{center}
+  \begin{center}
+    \begin{minipage}{0.85\textwidth}
+      \setlength{\parindent}{1.5em}
+      \normalsize
+}{%
+    \end{minipage}
+  \end{center}
+  \vspace{1em}
+}
+
+% ---------- Keywords ----------
+\newenvironment{keywords}{
+  \begin{center}
+    \begin{minipage}{0.85\textwidth}
+      \noindent \textbf{Keywords:} \normalsize
+}{%
+    \end{minipage}
+  \end{center}
+  \vspace{1em}
+}
+
+% ---------- Typography ----------
+\usepackage{indentfirst}            % \section 직후 첫 문단도 들여쓰기
+
+\setlength{\parindent}{1.5em}       % 들여쓰기 크기
+\setlength{\parskip}{0pt}           % 문단 간 추가 공백 없음
+
+% ---------- Math Numbering ----------
+\numberwithin{equation}{section}    % 수식 번호: (섹션.번호)
+
+%  Graphics Path ----------
+\graphicspath{{figures/}{./figures/}}
+
+% ---------- TOC Style ----------
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsecleader}{\cftdotfill{\cftdotsep}}
+
+% ---------- Section Style ----------
+\titleformat{\section}
+  {\normalfont\Large\bfseries}
+  {\thesection.}{1em}{}
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}
+  {\thesubsection.}{1em}{}
+
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries}
+  {\thesubsubsection.}{1em}{}
+
+% ---------- Appendix ----------
+\newcommand{\appendixformat}{%
+  \setcounter{section}{0}
+  \renewcommand{\thesection}{\Alph{section}}
+  \titleformat{\section}
+    {\normalfont\Large\bfseries}
+    {\thesection.}{1em}{}
+}
+
+\newcommand{\appendixpage}{%
+  \newpage
+  \begin{center}
+    \vspace*{\fill}
+    {\Huge\bfseries Appendix}\\[1cm]
+    {\large Supplementary Materials}
+    \vspace*{\fill}
+  \end{center}
+  \newpage
+}
+
+% ---------- Custom Reference Commands ----------
+\newcommand{\figref}[1]{Fig.~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+\newcommand{\eqnref}[1]{Eq.~(\ref{#1})}
+\newcommand{\secref}[1]{Section~\ref{#1}}

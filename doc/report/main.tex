@@ -1,0 +1,64 @@
+\makeatletter
+\def\input@path{{packages/}{vendor/}{sections/}{bibliography/}}
+\makeatother
+
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{packages/general}
+\usepackage{packages/formatting}
+
+\begin{document}
+    \input{chapter_00.tex}
+    \newpage
+
+    % Table of Contents
+    \tableofcontents
+    \newpage
+    % \listoffigures
+    % \newpage
+    % \listoftables
+    % \newpage
+
+    % Abstract
+    \input{abstract.tex}
+    \newpage
+    
+    % Chapters
+    \input{chapter_01.tex}
+    \newpage
+    \input{chapter_02.tex}
+    \newpage
+    \input{chapter_03.tex}
+    \newpage
+    \input{chapter_04.tex}
+    \newpage
+    \input{chapter_05.tex}
+    \newpage
+    \input{chapter_06.tex}
+    \newpage
+    \input{chapter_07.tex}
+    \newpage
+    % \input{chapter_08.tex}
+    % \newpage
+    % \input{chapter_09.tex}
+    % \newpage
+    % \input{chapter_10.tex}
+    % \newpage
+    % \input{chapter_11.tex}
+    % \newpage
+
+    % Appendix
+    \addcontentsline{toc}{section}{Appendix}
+    \appendix
+    \appendixpage
+    \appendixformat
+
+    \input{appendix_a.tex}
+    \input{appendix_b.tex}
+    \input{appendix_c.tex}
+    \newpage
+
+    % References
+    \bibliographystyle{plain}
+    \bibliography{bibliography/reference}
+\end{document}

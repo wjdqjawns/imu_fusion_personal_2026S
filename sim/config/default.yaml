@@ -1,0 +1,46 @@
+simulation:
+  dt: 0.01
+  duration: 30.0
+  gyro_bias_deg_s: [0.5, -0.3, 0.2]
+  gyro_noise_std_deg_s: 0.15
+  accel_noise_std_g: 0.015
+  mag_noise_std: 0.01
+  hard_iron: [0.08, -0.05, 0.03]
+  soft_iron:
+    - [1.08, 0.02, 0.00]
+    - [0.01, 0.95, 0.01]
+    - [0.00, -0.02, 1.03]
+
+# imu:
+#   sample_rate_hz: 100
+  
+#   # sensor biases
+#   accel_bias_g: [0.02, -0.01, 0.03]
+#   gyro_bias_deg_s: [0.5, -0.3, 0.2]
+#   mag_bias_uT: [0.08, -0.05, 0.03] # [uT]
+
+#   # sensor noise std
+#   gyro_noise_std_deg_s: 0.15
+#   accel_noise_std_g: 0.015
+#   mag_noise_std: 0.01
+
+#   # magnetometer calibration parameters
+#   hard_iron: [0.08, -0.05, 0.03]
+#   soft_iron:
+#     - [1.08, 0.02, 0.00]
+#     - [0.01, 0.95, 0.01]
+#     - [0.00, -0.02, 1.03]
+  
+
+mahony:
+  kp: 1.8
+  ki: 0.08
+
+madgwick:
+  beta: 0.08
+
+ekf:
+  gyro_noise_std_rad_s: 0.01
+  gyro_bias_rw_std: 0.0005
+  accel_meas_std: 0.05
+  mag_meas_std: 0.05

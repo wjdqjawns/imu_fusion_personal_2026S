@@ -1,0 +1,270 @@
+\section{Simulation \& Experimental Results}
+    본 장에서는 5장에서 설계한 세 가지 AHRS 알고리즘의 성능을 시뮬레이션과 실제 하드웨어 실험을 통해 검증하고 비교 분석한다. 시뮬레이션은 알고리즘의 이론적 성능을 제어된 환경에서 평가하고, 실험은 실제 MPU-9250 하드웨어에서의 성능을 측정한다.\\
+
+    % ============================================================
+    \subsection{Simulation}
+        시뮬레이션은 Python 환경에서 IMU 데이터를 합성하여 알고리즘의 성능을 정량적으로 평가하는 방법이다. 실제 실험에서는 ground truth를 얻기 어렵기 때문에, 시뮬레이션을 통해 참값과의 오차를 직접 계산할 수 있다.\\
+
+        \subsubsection{IMU Simulator Configuration}
+            \paragraph{합성 궤적 생성}
+                시뮬레이터는 참 자세 궤적(ground truth trajectory)을 먼저 생성한 후, 2장에서 정의한 잡음 모델을 적용하여 IMU 측정값을 합성한다.\\
+
+                참 자세는 다음의 시험 기동(test maneuver)으로 구성한다:\\
+    
+                \begin{itemize}
+                    \item \textbf{정적 구간}: $t \in [0, 10]\,\text{s}$ — 초기 수렴 확인
+                    \item \textbf{Roll 기동}: $t \in [10, 20]\,\text{s}$ — $\pm 30^\circ$ 정현파 회전
+                    \item \textbf{Pitch 기동}: $t \in [20, 30]\,\text{s}$ — $\pm 20^\circ$ 정현파 회전
+                    \item \textbf{복합 기동}: $t \in [30, 60]\,\text{s}$ — Roll/Pitch/Yaw 동시 회전
+                \end{itemize}
+
+                참 각속도 $\boldsymbol{\omega}_{\text{true}}(t)$는 참 자세 쿼터니언의 시간 미분으로부터 계산한다.
+
+            \paragraph{IMU 측정값 합성}
+                자이로스코프 측정값은 3장에서 추정한 잡음 파라미터를 적용하여 합성한다:
+
+                \begin{equation}
+                    \tilde{\boldsymbol{\omega}}_k = \boldsymbol{\omega}_{\text{true},k} + \mathbf{b}_{g,k} + \mathbf{n}_{w,k}
+                    \label{eq:sim_gyro}
+                \end{equation}
+                
+                \noindent 여기서 바이어스는 랜덤 워크로 시뮬레이션한다:\\
+                
+                \begin{equation}
+                    \mathbf{b}_{g,k} = \mathbf{b}_{g,k-1} + \mathbf{n}_{rw,k}\sqrt{\Delta t}, \qquad \mathbf{n}_{rw,k} \sim \mathcal{N}(\mathbf{0},\, \sigma_{rw}^2\mathbf{I})
+                    \label{eq:sim_bias}
+                \end{equation}
+                
+                가속도계 측정값은 정적 가정 하에서:\\
+                
+                \begin{equation}
+                    \tilde{\mathbf{a}}_k = \mathbf{R}(\mathbf{q}_{\text{true},k})\,\mathbf{g}^n + \mathbf{b}_{a} + \mathbf{n}_{a,k}
+                    \label{eq:sim_accel}
+                \end{equation}
+                
+                지자기계 측정값:\\
+                
+                \begin{equation}
+                    \tilde{\mathbf{m}}_k = \mathbf{R}(\mathbf{q}_{\text{true},k})\,\mathbf{m}^n + \mathbf{b}_{m} + \mathbf{n}_{m,k}
+                    \label{eq:sim_mag}
+                \end{equation}
+                
+                시뮬레이션에 사용한 잡음 파라미터는 표 \ref{tab:sim_params}와 같다.\\
+                
+                \begin{table}[H]
+                    \centering
+                    \caption{시뮬레이션 잡음 파라미터}
+                    \label{tab:sim_params}
+                    \begin{tabular}{llll}
+                        \toprule
+                        파라미터 & 기호 & 값 & 출처 \\
+                        \midrule
+                        자이로 ARW & $\sigma_w$ & \textit{[실험값]} $\,\text{deg}/\sqrt{\text{hr}}$ & Allan Variance \\
+                        자이로 RRW & $\sigma_{rw}$ & \textit{[실험값]} $\,\text{deg}/\text{hr}^{3/2}$ & Allan Variance \\
+                        가속도계 잡음 & $\sigma_a$ & \textit{[실험값]} $\,\text{m/s}^2$ & 캘리브레이션 \\
+                        지자기계 잡음 & $\sigma_m$ & \textit{[실험값]} $\,\mu\text{T}$ & 캘리브레이션 \\
+                        샘플링 주파수 & $f_s$ & $100\,\text{Hz}$ & --- \\
+                        \bottomrule
+                    \end{tabular}
+                \end{table}
+
+            \paragraph{성능 지표}
+                자세 추정 오차는 참 쿼터니언 $\mathbf{q}_{\text{true}}$와 추정 쿼터니언 $\hat{\mathbf{q}}$ 사이의 각도 오차(angular error)로 정의한다:\\
+
+                \begin{equation}
+                    e_k = 2\arccos\!\left(\left|\mathbf{q}_{\text{true},k}^\top \hat{\mathbf{q}}_k\right|\right) \cdot \frac{180^\circ}{\pi}
+                    \label{eq:angular_error}
+                \end{equation}
+
+                오차 지표는 다음 두 가지를 사용한다:\\
+
+                \begin{align}
+                    \text{RMSE} &= \sqrt{\frac{1}{N}\sum_{k=1}^N e_k^2} \label{eq:rmse} \\
+                    t_{\text{conv}} &= \min\{t \mid e_k < e_{\text{th}}\;\forall\; k \geq t/\Delta t\}, \quad e_{\text{th}} = 1^\circ \label{eq:conv_time}
+                \end{align}
+
+        \subsubsection{Filter Performance Comparison (Roll / Pitch)}
+            그림 \ref{fig:sim_roll_pitch}는 복합 기동 구간에서 각 필터의 roll 및 pitch 추정 결과를 참값과 비교한 것이다.\\
+
+            \begin{figure}[H]
+                \centering
+                % \includegraphics[width=0.9\textwidth]{figures/sim_roll_pitch.pdf}
+                \fbox{\parbox{0.85\textwidth}{\centering\vspace{2cm}
+                    [그림: Roll/Pitch 추정 비교 — CF / Mahony / Madgwick / EKF vs. Ground Truth]
+                \vspace{2cm}}}
+                \caption{시뮬레이션: Roll 및 Pitch 추정 결과 비교}
+                \label{fig:sim_roll_pitch}
+            \end{figure}
+            
+            표 \ref{tab:sim_rmse}에 각 필터의 RMSE 및 수렴 시간을 정리하였다.\\
+            
+            \begin{table}[H]
+                \centering
+                \caption{시뮬레이션 RMSE 및 수렴 시간 비교}
+                \label{tab:sim_rmse}
+                \begin{tabular}{lcccc}
+                    \toprule
+                    필터 & Roll RMSE ($^\circ$) & Pitch RMSE ($^\circ$) & Yaw RMSE ($^\circ$) & $t_{\text{conv}}$ (s) \\
+                    \midrule
+                    CF        & \textit{[실험값]} & \textit{[실험값]} & --- & \textit{[실험값]} \\
+                    Mahony    & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    Madgwick  & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    EKF       & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    \bottomrule
+                \end{tabular}
+            \end{table}
+
+        \subsubsection{Magnetometer Effect on Yaw Estimation}
+            지자기계의 유무에 따른 Yaw 추정 성능 차이를 비교한다. 지자기계 없이 자이로스코프만 적분하면 바이어스 드리프트로 인해 Yaw 오차가 시간에 따라 선형적으로 증가한다:\\
+        
+            \begin{equation}
+                e_{\psi}(t) \approx b_{gz} \cdot t
+                \label{eq:yaw_drift}
+            \end{equation}
+            
+            그림 \ref{fig:sim_yaw}는 EKF에서 지자기계 Update 포함/미포함에 따른 Yaw 추정 오차를 비교한 것이다.\\
+            
+            \begin{figure}[H]
+                \centering
+                \fbox{\parbox{0.85\textwidth}{\centering\vspace{2cm}
+                    [그림: Yaw 드리프트 비교 — w/ Mag vs. w/o Mag]
+                \vspace{2cm}}}
+                \caption{지자기계 유무에 따른 Yaw 추정 오차 비교}
+                \label{fig:sim_yaw}
+            \end{figure}
+
+        \subsubsection{RMSE and Convergence Time Analysis}
+            그림 \ref{fig:sim_convergence}는 초기화 후 각 필터의 수렴 과정을 나타낸 것으로, 초기 자세 오차 $30^\circ$에서 출발하여 $1^\circ$ 이하로 수렴하는 시간을 비교한다.\\
+
+            \begin{figure}[H]
+                \centering
+                \fbox{\parbox{0.85\textwidth}{\centering\vspace{2cm}
+                    [그림: 필터별 수렴 과정 비교]
+                \vspace{2cm}}}
+                \caption{초기 수렴 속도 비교}
+                \label{fig:sim_convergence}
+            \end{figure}
+
+    % ============================================================
+    \subsection{Experimental Results}
+        실제 MPU-9250과 Arduino를 이용한 하드웨어 실험을 수행하여 시뮬레이션 결과와 비교한다.\\
+
+        \subsubsection{Allan Variance \& PSD Results}
+            정지 환경에서 2시간 이상 자이로스코프 데이터를 수집하여 Allan Variance 및 PSD 분석을 수행하였다.\\
+
+            그림 \ref{fig:avar_result}는 자이로스코프 3축의 Allan Deviation 곡선이다.\\
+            
+            \begin{figure}[H]
+                \centering
+                \fbox{\parbox{0.85\textwidth}{\centering\vspace{2.5cm}
+                    [그림: Allan Deviation 곡선 — 자이로 x/y/z 축 및 잡음 성분 기울기 표시]
+                \vspace{2.5cm}}}
+                \caption{MPU-9250 자이로스코프 Allan Deviation}
+                \label{fig:avar_result}
+            \end{figure}
+            
+            표 \ref{tab:avar_result}에 각 축의 ARW 및 BI 추정 결과를 정리하였다.\\
+
+            \begin{table}[H]
+                \centering
+                \caption{Allan Variance 분석 결과}
+                \label{tab:avar_result}
+                \begin{tabular}{lccc}
+                    \toprule
+                    & x축 & y축 & z축 \\
+                    \midrule
+                    ARW ($\text{deg}/\sqrt{\text{hr}}$) & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    BI ($\text{deg}/\text{hr}$)         & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    RRW ($\text{deg}/\text{hr}^{3/2}$)  & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    \bottomrule
+                \end{tabular}
+            \end{table}
+
+        \subsubsection{Calibration Results}
+            3장에서 기술한 방법으로 캘리브레이션을 수행한 결과를 정리한다.
+        
+            \paragraph{가속도계}
+                6위치 정적 캘리브레이션으로 추정한 바이어스 및 스케일 팩터:
+            
+            \begin{table}[H]
+                \centering
+                \caption{가속도계 캘리브레이션 결과}
+                \label{tab:accel_calib}
+                \begin{tabular}{lccc}
+                    \toprule
+                    & x축 & y축 & z축 \\
+                    \midrule
+                    바이어스 (m/s$^2$)   & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    스케일 팩터           & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    보정 전 RMSE (m/s$^2$) & \multicolumn{3}{c}{\textit{[실험값]}} \\
+                    보정 후 RMSE (m/s$^2$) & \multicolumn{3}{c}{\textit{[실험값]}} \\
+                    \bottomrule
+                \end{tabular}
+            \end{table}
+            
+            \paragraph{지자기계}
+                Hard/Soft Iron 보정 결과를 그림으로 확인한다.
+            
+                \begin{figure}[H]
+                    \centering
+                    \fbox{\parbox{0.85\textwidth}{\centering\vspace{2.5cm}
+                        [그림: 지자기계 보정 전후 3D 산점도 — 보정 전(타원체) / 보정 후(구)]
+                    \vspace{2.5cm}}}
+                    \caption{지자기계 Hard/Soft Iron 보정 결과}
+                    \label{fig:mag_calib}
+                \end{figure}
+
+        \subsubsection{Static Attitude Estimation}
+            센서를 정지 상태로 유지하며 각 필터의 정적 자세 추정 정확도를 평가한다. 참값은 수평계(level gauge)로 측정한 roll/pitch 각도를 사용한다.\\
+
+            \begin{table}[H]
+                \centering
+                \caption{정적 자세 추정 정확도}
+                \label{tab:static_attitude}
+                \begin{tabular}{lcccc}
+                    \toprule
+                    필터 & Roll 평균 오차 ($^\circ$) & Roll 표준편차 ($^\circ$) & Pitch 평균 오차 ($^\circ$) & Pitch 표준편차 ($^\circ$) \\
+                    \midrule
+                    CF       & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    Mahony   & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    Madgwick & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    EKF      & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} & \textit{[실험값]} \\
+                    \bottomrule
+                \end{tabular}
+            \end{table}
+
+        \subsubsection{Dynamic Attitude Estimation}
+            손으로 센서를 회전시키는 동적 실험을 수행하여 필터별 성능을 비교한다.\\
+
+            \begin{figure}[H]
+                \centering
+                \fbox{\parbox{0.85\textwidth}{\centering\vspace{2.5cm}
+                    [그림: 동적 실험 Roll/Pitch/Yaw 추정 결과 — 필터별 비교]
+                \vspace{2.5cm}}}
+                \caption{동적 자세 추정 결과 비교}
+                \label{fig:dynamic_attitude}
+            \end{figure}
+
+    % ============================================================
+    \subsection{Simulation vs. Experiment Comparison}
+        \subsubsection{Noise Characteristics}
+            시뮬레이션에 주입한 잡음 파라미터와 실측 Allan Variance 결과를 비교하여 시뮬레이터의 현실성을 평가한다.\\
+
+        \subsubsection{Filter Performance Discrepancies}
+            시뮬레이션과 실험 결과의 RMSE 차이를 분석한다. 주요 원인으로는 다음을 고려한다:\\
+            
+            \begin{itemize}
+                \item 동적 가속도 모델링 부재 — 시뮬레이션은 정적 가속도 가정
+                \item 자기 왜곡 — 실내 환경의 Hard/Soft Iron 잔류 오차
+                \item 온도 드리프트 — 실험 중 바이어스 변화
+                \item 시뮬레이터의 1차 ZOH 근사 오차
+            \end{itemize}
+
+        \subsubsection{Real-world Challenges}
+            실제 환경에서 나타난 주요 문제점을 정리한다.\\
+
+            \paragraph{자기 왜곡}
+                실내 환경에서 철제 구조물 및 전자 장비에 의한 자기 왜곡으로 Yaw 추정 오차가 시뮬레이션 대비 크게 증가하는 현상이 관찰되었다. 이는 Hard/Soft Iron 보정만으로는 완전히 제거할 수 없는 환경적 요인이다.\\
+
+            \paragraph{진동}
+                고주파 진동이 있는 환경에서 가속도계 기반 roll/pitch 추정값의 잡음이 증가하여 EKF의 동적 가속도 감지 조건(식 \eqref{eq:ekf_accel_condition})의 임계값 조정이 필요하였다.\\

@@ -1,0 +1,630 @@
+\section{AHRS Algorithms}
+
+자세 및 방위 기준 시스템(Attitude and Heading Reference System, AHRS)은
+가속도계, 자이로스코프, 지자기계의 측정값을 융합하여
+실시간으로 물체의 3차원 자세를 추정하는 시스템이다.
+본 장에서는 세 가지 AHRS 알고리즘을 설계하고 비교한다.
+Complementary Filter는 주파수 영역 관점에서 직관적인 설계가 가능한 기초적 알고리즘이며,
+Mahony 및 Madgwick Filter는 비선형 최적화 기반의 효율적인 알고리즘이다.
+Extended Kalman Filter(EKF)는 확률론적 프레임워크 기반의 최적 추정기로,
+본 연구의 핵심 알고리즘이다.
+
+% ============================================================
+\subsection{Complementary Filter}
+% ============================================================
+
+Complementary Filter(CF)는 서로 다른 주파수 특성을 가진 두 신호를
+상보적으로 결합하여 자세를 추정하는 방법이다.
+자이로스코프는 단기 회전에 정확하지만 저주파 드리프트 문제가 있고,
+가속도계는 장기적으로 안정적이지만 고주파 진동에 취약하다.
+CF는 이 두 센서의 상보적 특성을 주파수 영역에서 결합한다.
+
+% ------------------------------------------------------------
+\subsubsection{Frequency Domain Analysis}
+
+자이로스코프를 적분하여 얻은 자세 추정값 $\hat{\phi}_{\text{gyro}}$는
+고주파 성분에 강하지만 저주파 드리프트 성분 $B(s)$를 포함한다:
+
+\begin{equation}
+    \hat{\phi}_{\text{gyro}}(s) = \frac{1}{s}\tilde{\omega}(s) = \frac{1}{s}\left[\omega(s) + B(s)\right]
+    \label{eq:cf_gyro_freq}
+\end{equation}
+
+가속도계로부터 추정한 자세 $\hat{\phi}_{\text{accel}}$는
+저주파에서 정확하지만 고주파 잡음 $N(s)$를 포함한다:
+
+\begin{equation}
+    \hat{\phi}_{\text{accel}}(s) = \phi(s) + N(s)
+    \label{eq:cf_accel_freq}
+\end{equation}
+
+CF는 고역통과 필터(HPF) $H(s)$와 저역통과 필터(LPF) $1 - H(s)$를 사용하여
+두 추정값을 결합한다:
+
+\begin{equation}
+    \hat{\phi}(s) = H(s)\,\hat{\phi}_{\text{gyro}}(s) + [1 - H(s)]\,\hat{\phi}_{\text{accel}}(s)
+    \label{eq:cf_combine}
+\end{equation}
+
+1차 HPF $H(s) = \frac{\tau s}{\tau s + 1}$을 적용하면:
+
+\begin{equation}
+    \hat{\phi}(s) = \frac{\tau s}{\tau s + 1}\cdot\frac{\tilde{\omega}(s)}{s} + \frac{1}{\tau s + 1}\cdot\hat{\phi}_{\text{accel}}(s)
+    \label{eq:cf_1st_order}
+\end{equation}
+
+\noindent 여기서 $\tau = \alpha / (1 - \alpha)$는 시정수(time constant)로,
+필터의 차단 주파수 $f_c = 1/(2\pi\tau)$를 결정한다.
+
+% ------------------------------------------------------------
+\subsubsection{Filter Design and Parameter Tuning}
+
+이산시간 구현에서 CF는 다음과 같이 표현된다:
+
+\begin{equation}
+    \hat{\phi}_k = \alpha\left(\hat{\phi}_{k-1} + \tilde{\omega}_k \Delta t\right) + (1 - \alpha)\,\hat{\phi}_{\text{accel},k}
+    \label{eq:cf_discrete}
+\end{equation}
+
+\noindent 여기서 $\alpha \in (0, 1)$은 필터 계수로,
+$\alpha$가 클수록 자이로스코프를 더 신뢰하고,
+$\alpha$가 작을수록 가속도계를 더 신뢰한다.
+일반적으로 $\alpha = 0.98$이 많이 사용되며,
+이는 차단 주파수 $f_c \approx 0.08\,\text{Hz}$에 해당한다.
+
+3축 자세 추정을 위한 CF 알고리즘을 정리하면 다음과 같다.
+
+\begin{algorithm}[H]
+    \caption{Complementary Filter}
+    \label{alg:cf}
+    \begin{algorithmic}[1]
+        \State \textbf{초기화}: $\hat{\phi}_0, \hat{\theta}_0$ (가속도계로부터), $\hat{\psi}_0 = 0$
+        \For{$k = 1, 2, \ldots$}
+            \State 가속도계로부터 roll/pitch 추정:
+            \State \quad $\phi_{\text{accel}} = \arctan(\tilde{a}_y / \tilde{a}_z)$
+            \State \quad $\theta_{\text{accel}} = \arctan(-\tilde{a}_x / \sqrt{\tilde{a}_y^2 + \tilde{a}_z^2})$
+            \State 자이로스코프 적분:
+            \State \quad $\phi_{\text{gyro}} = \hat{\phi}_{k-1} + \tilde{\omega}_x \Delta t$
+            \State \quad $\theta_{\text{gyro}} = \hat{\theta}_{k-1} + \tilde{\omega}_y \Delta t$
+            \State CF 결합:
+            \State \quad $\hat{\phi}_k = \alpha\,\phi_{\text{gyro}} + (1-\alpha)\,\phi_{\text{accel}}$
+            \State \quad $\hat{\theta}_k = \alpha\,\theta_{\text{gyro}} + (1-\alpha)\,\theta_{\text{accel}}$
+            \State Yaw (지자기계 사용 시):
+            \State \quad $\hat{\psi}_k = \alpha(\hat{\psi}_{k-1} + \tilde{\omega}_z \Delta t) + (1-\alpha)\,\psi_{\text{mag}}$
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+$\alpha$ 튜닝 지침:
+\begin{itemize}
+    \item \textbf{정적 환경}: $\alpha \approx 0.95$~$0.98$ — 가속도계 기여도를 높여 드리프트 억제
+    \item \textbf{동적 환경}: $\alpha \approx 0.98$~$0.999$ — 동적 가속도 간섭을 줄이기 위해 자이로 비중 증가
+    \item \textbf{차단 주파수}: $f_c = (1-\alpha) / (2\pi\alpha\Delta t)$
+\end{itemize}
+
+% ------------------------------------------------------------
+\subsubsection{Limitations}
+
+CF의 주요 한계는 다음과 같다.
+
+\begin{enumerate}
+    \item \textbf{고정 $\alpha$}: 운동 상태에 무관하게 동일한 가중치를 적용하므로,
+          동적 가속도가 큰 상황에서 roll/pitch 오차가 증가한다.
+    \item \textbf{비선형성 무시}: 오일러각 기반 구현에서 짐벌 락 문제가 발생할 수 있다.
+    \item \textbf{바이어스 추정 불가}: 자이로 바이어스를 명시적으로 추정하지 않으므로,
+          바이어스 드리프트에 의한 누적 오차를 완전히 제거할 수 없다.
+    \item \textbf{측정 불확실도 미반영}: 센서 잡음 특성을 확률적으로 모델링하지 않아
+          최적 추정이 보장되지 않는다.
+\end{enumerate}
+
+% ============================================================
+\subsection{Mahony \& Madgwick Filter}
+% ============================================================
+
+Mahony Filter와 Madgwick Filter는 CF의 한계를 개선한 비선형 필터로,
+쿼터니언 기반으로 짐벌 락 없이 자세를 추정하며
+계산 비용이 낮아 임베디드 시스템에 적합하다.
+
+% ------------------------------------------------------------
+\subsubsection{Mahony Filter}
+
+Mahony Filter는 오차 신호를 이용한 PI 제어(Proportional-Integral control) 기반으로
+자이로스코프 바이어스를 보정하며 자세를 추정한다.
+
+\paragraph{오차 신호 계산}
+
+가속도계 측정값 $\tilde{\mathbf{a}}$를 정규화하고,
+현재 자세 추정값 $\hat{\mathbf{q}}$로부터 예측한 중력 방향 $\mathbf{v}$를 계산한다:
+
+\begin{equation}
+    \mathbf{v} = \mathbf{h}_a(\hat{\mathbf{q}}) / g = \begin{bmatrix}
+        2(q_1 q_3 - q_0 q_2) \\
+        2(q_2 q_3 + q_0 q_1) \\
+        q_0^2 - q_1^2 - q_2^2 + q_3^2
+    \end{bmatrix}
+    \label{eq:mahony_gravity}
+\end{equation}
+
+자세 오차를 나타내는 오차 신호 $\mathbf{e}$는 두 벡터의 외적(cross product)으로 정의된다:
+
+\begin{equation}
+    \mathbf{e}_a = \hat{\mathbf{a}} \times \mathbf{v}, \qquad \hat{\mathbf{a}} = \frac{\tilde{\mathbf{a}}}{\|\tilde{\mathbf{a}}\|}
+    \label{eq:mahony_error}
+\end{equation}
+
+지자기계를 사용하는 경우 자기장 오차도 추가한다:
+
+\begin{equation}
+    \mathbf{e}_m = \hat{\mathbf{m}} \times \mathbf{w}, \qquad \hat{\mathbf{m}} = \frac{\mathbf{m}_{\text{calib}}}{\|\mathbf{m}_{\text{calib}}\|}
+    \label{eq:mahony_mag_error}
+\end{equation}
+
+\noindent 여기서 $\mathbf{w}$는 현재 자세로 예측한 기준 자기장 방향이다.
+
+전체 오차: $\mathbf{e} = \mathbf{e}_a + \mathbf{e}_m$
+
+\paragraph{PI 보정 및 자세 갱신}
+
+PI 제어기를 이용하여 바이어스를 추정하고 각속도를 보정한다:
+
+\begin{align}
+    \hat{\mathbf{b}}_{g,k} &= \hat{\mathbf{b}}_{g,k-1} + k_i\,\mathbf{e}_k\,\Delta t \label{eq:mahony_bias_update} \\
+    \boldsymbol{\omega}_{\text{corr},k} &= \tilde{\boldsymbol{\omega}}_k - \hat{\mathbf{b}}_{g,k} + k_p\,\mathbf{e}_k \label{eq:mahony_omega_corr}
+\end{align}
+
+\noindent 여기서 $k_p > 0$은 비례 이득(proportional gain),
+$k_i \geq 0$은 적분 이득(integral gain)이다.
+
+보정된 각속도로 쿼터니언을 갱신한다:
+
+\begin{equation}
+    \hat{\mathbf{q}}_{k+1} = \hat{\mathbf{q}}_k + \frac{\Delta t}{2}\boldsymbol{\Omega}(\boldsymbol{\omega}_{\text{corr},k})\hat{\mathbf{q}}_k
+    \label{eq:mahony_quat_update}
+\end{equation}
+
+갱신 후 정규화:
+
+\begin{equation}
+    \hat{\mathbf{q}}_{k+1} \leftarrow \frac{\hat{\mathbf{q}}_{k+1}}{\|\hat{\mathbf{q}}_{k+1}\|}
+    \label{eq:mahony_normalize}
+\end{equation}
+
+\paragraph{파라미터 튜닝}
+
+$k_p$와 $k_i$의 선택은 수렴 속도와 안정성에 영향을 미친다:
+\begin{itemize}
+    \item $k_p$: 클수록 빠른 수렴, 단 과도한 값은 진동 유발. 일반적으로 $k_p = 2.0$
+    \item $k_i$: 바이어스 추정 속도 제어. $k_i = 0$으로 설정하면 자이로 바이어스 보정 없음. 일반적으로 $k_i = 0.005$
+    \item $k_i = 0$이면 Mahony Filter는 CF와 유사한 동작을 보임
+\end{itemize}
+
+% ------------------------------------------------------------
+\subsubsection{Madgwick Filter}
+
+Madgwick Filter는 경사 하강법(Gradient Descent)을 이용하여
+쿼터니언 오차를 최소화하는 방향으로 자세를 갱신한다.
+
+\paragraph{목적 함수 정의}
+
+현재 자세 추정값 $\hat{\mathbf{q}}$에서 가속도계 관측의 오차 함수를 정의한다:
+
+\begin{equation}
+    f_g(\hat{\mathbf{q}}, \tilde{\mathbf{a}}) = \mathbf{h}_a(\hat{\mathbf{q}}) - \hat{\mathbf{a}}
+    \label{eq:madgwick_objective}
+\end{equation}
+
+\noindent 여기서 $\hat{\mathbf{a}} = \tilde{\mathbf{a}} / \|\tilde{\mathbf{a}}\|$는 정규화된 가속도 측정값이다.
+
+\paragraph{Gradient 계산}
+
+목적 함수의 Gradient는 Jacobian $\mathbf{J}_g$를 이용하여 계산된다:
+
+\begin{equation}
+    \nabla f_g = \mathbf{J}_g^\top f_g(\hat{\mathbf{q}}, \tilde{\mathbf{a}})
+    \label{eq:madgwick_gradient}
+\end{equation}
+
+\noindent 여기서 $\mathbf{J}_g = \partial \mathbf{h}_a / \partial \mathbf{q} \in \mathbb{R}^{3\times 4}$는:
+
+\begin{equation}
+    \mathbf{J}_g = 2\begin{bmatrix}
+        -q_2 &  q_3 & -q_0 &  q_1 \\
+         q_1 &  q_0 &  q_3 &  q_2 \\
+         0   & -2q_1 & -2q_2 & 0
+    \end{bmatrix}
+    \label{eq:madgwick_jacobian}
+\end{equation}
+
+지자기계를 포함할 경우 자기장 오차 함수 $f_b$를 추가하여
+전체 Gradient를 구성한다:
+
+\begin{equation}
+    \nabla F = \mathbf{J}_g^\top f_g + \mathbf{J}_b^\top f_b
+    \label{eq:madgwick_total_gradient}
+\end{equation}
+
+\paragraph{쿼터니언 갱신}
+
+경사 하강법으로 오차를 최소화하는 방향으로 자이로 적분에 보정을 가한다:
+
+\begin{equation}
+    \dot{\hat{\mathbf{q}}}_{\text{corr}} = \dot{\hat{\mathbf{q}}}_{\text{gyro}} - \beta\frac{\nabla F}{\|\nabla F\|}
+    \label{eq:madgwick_update}
+\end{equation}
+
+\noindent 여기서 $\beta \geq 0$는 수렴 속도를 제어하는 유일한 튜닝 파라미터이다.
+
+이산시간 구현:
+
+\begin{equation}
+    \hat{\mathbf{q}}_{k+1} = \hat{\mathbf{q}}_k + \dot{\hat{\mathbf{q}}}_{\text{corr},k}\,\Delta t
+    \label{eq:madgwick_discrete}
+\end{equation}
+
+갱신 후 정규화:
+
+\begin{equation}
+    \hat{\mathbf{q}}_{k+1} \leftarrow \frac{\hat{\mathbf{q}}_{k+1}}{\|\hat{\mathbf{q}}_{k+1}\|}
+    \label{eq:madgwick_normalize}
+\end{equation}
+
+\paragraph{$\beta$ 파라미터 해석}
+
+$\beta$는 자이로스코프 측정 오차의 예상 크기와 관련된다.
+Madgwick의 원 논문에서는 다음과 같이 제안한다:
+
+\begin{equation}
+    \beta = \sqrt{\frac{3}{4}}\,\tilde{\omega}_e
+    \label{eq:madgwick_beta}
+\end{equation}
+
+\noindent 여기서 $\tilde{\omega}_e$는 자이로스코프의 예상 측정 오차(rad/s)이다.
+$\beta$가 클수록 가속도계/지자기계에 의한 보정이 강해지고,
+$\beta = 0$이면 순수 자이로 적분과 동일하다.
+
+% ------------------------------------------------------------
+\subsubsection{Comparison}
+
+표 \ref{tab:filter_comparison_simple}에 Complementary Filter,
+Mahony Filter, Madgwick Filter의 주요 특성을 비교하였다.
+
+\begin{table}[H]
+    \centering
+    \caption{AHRS 필터 비교 (CF / Mahony / Madgwick)}
+    \label{tab:filter_comparison_simple}
+    \begin{tabular}{lccc}
+        \toprule
+        특성 & CF & Mahony & Madgwick \\
+        \midrule
+        자세 표현 & 오일러각 / 쿼터니언 & 쿼터니언 & 쿼터니언 \\
+        바이어스 추정 & $\times$ & $\checkmark$ (PI) & $\times$ \\
+        튜닝 파라미터 & $\alpha$ & $k_p,\, k_i$ & $\beta$ \\
+        계산 복잡도 & 낮음 & 낮음 & 낮음 \\
+        최적성 & $\times$ & $\times$ & $\times$ \\
+        짐벌 락 & 있음 (오일러각) & 없음 & 없음 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+세 필터 모두 계산 비용이 낮고 구현이 간단하다는 장점이 있으나,
+센서 잡음의 확률적 특성을 명시적으로 모델링하지 않아 최적 추정이 보장되지 않는다.
+이러한 한계를 극복하기 위해 다음 절에서 EKF를 설계한다.
+
+% ============================================================
+\subsection{Extended Kalman Filter}
+% ============================================================
+
+Extended Kalman Filter(EKF)는 비선형 시스템에 Kalman Filter를 적용하기 위해
+상태 방정식과 관측 방정식을 현재 추정값 주변에서 1차 Taylor 전개로 선형화하는
+최적 확률적 추정기이다.
+4장에서 수립한 시스템 모델을 기반으로 EKF를 설계한다.
+
+% ------------------------------------------------------------
+\subsubsection{Algorithm Overview}
+
+EKF는 Prediction 단계와 Update 단계로 구성된다.
+
+\begin{algorithm}[H]
+    \caption{Extended Kalman Filter for AHRS}
+    \label{alg:ekf}
+    \begin{algorithmic}[1]
+        \State \textbf{초기화}: $\hat{\mathbf{x}}_0 = [\mathbf{q}_0^\top, \mathbf{0}^\top]^\top$, $\mathbf{P}_0 = \mathbf{I}_7$
+        \For{$k = 1, 2, \ldots$}
+            \State \textbf{--- Prediction ---}
+            \State 상태 전파: $\hat{\mathbf{x}}_{k|k-1} = \mathbf{f}(\hat{\mathbf{x}}_{k-1}, \tilde{\boldsymbol{\omega}}_k)$
+            \State 쿼터니언 정규화: $\hat{\mathbf{q}}_{k|k-1} \leftarrow \hat{\mathbf{q}}_{k|k-1} / \|\hat{\mathbf{q}}_{k|k-1}\|$
+            \State Jacobian 계산: $\mathbf{F}_k = \mathbf{I}_7 + \mathbf{F}_c(\hat{\mathbf{x}}_{k-1})\Delta t$
+            \State 공분산 전파: $\mathbf{P}_{k|k-1} = \mathbf{F}_k \mathbf{P}_{k-1} \mathbf{F}_k^\top + \mathbf{Q}$
+            \State \textbf{--- Update (Accelerometer) ---}
+            \State 잔차: $\boldsymbol{\nu}_a = \tilde{\mathbf{a}}_k - \mathbf{h}_a(\hat{\mathbf{x}}_{k|k-1})$
+            \State Jacobian: $\mathbf{H}_{a,k} = \partial\mathbf{h}_a/\partial\mathbf{x}\big|_{\hat{\mathbf{x}}_{k|k-1}}$
+            \State Kalman Gain: $\mathbf{K}_a = \mathbf{P}_{k|k-1}\mathbf{H}_{a,k}^\top(\mathbf{H}_{a,k}\mathbf{P}_{k|k-1}\mathbf{H}_{a,k}^\top + \mathbf{R}_a)^{-1}$
+            \State 상태 갱신: $\hat{\mathbf{x}}_{k|k}^{(a)} = \hat{\mathbf{x}}_{k|k-1} + \mathbf{K}_a\boldsymbol{\nu}_a$
+            \State 공분산 갱신: $\mathbf{P}_{k|k}^{(a)} = (\mathbf{I} - \mathbf{K}_a\mathbf{H}_{a,k})\mathbf{P}_{k|k-1}$
+            \State \textbf{--- Update (Magnetometer) ---}
+            \State 잔차: $\boldsymbol{\nu}_m = \mathbf{m}_{\text{calib},k} - \mathbf{h}_m(\hat{\mathbf{x}}_{k|k}^{(a)})$
+            \State Jacobian: $\mathbf{H}_{m,k} = \partial\mathbf{h}_m/\partial\mathbf{x}\big|_{\hat{\mathbf{x}}_{k|k}^{(a)}}$
+            \State Kalman Gain: $\mathbf{K}_m = \mathbf{P}_{k|k}^{(a)}\mathbf{H}_{m,k}^\top(\mathbf{H}_{m,k}\mathbf{P}_{k|k}^{(a)}\mathbf{H}_{m,k}^\top + \mathbf{R}_m)^{-1}$
+            \State 상태 갱신: $\hat{\mathbf{x}}_k = \hat{\mathbf{x}}_{k|k}^{(a)} + \mathbf{K}_m\boldsymbol{\nu}_m$
+            \State 공분산 갱신: $\mathbf{P}_k = (\mathbf{I} - \mathbf{K}_m\mathbf{H}_{m,k})\mathbf{P}_{k|k}^{(a)}$
+            \State 쿼터니언 정규화: $\hat{\mathbf{q}}_k \leftarrow \hat{\mathbf{q}}_k / \|\hat{\mathbf{q}}_k\|$
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+% ------------------------------------------------------------
+\subsubsection{State Vector Definition}
+
+EKF의 상태 벡터는 쿼터니언과 자이로 바이어스로 구성된다:
+
+\begin{equation}
+    \mathbf{x} = \begin{bmatrix} \mathbf{q} \\ \mathbf{b}_g \end{bmatrix} =
+    \begin{bmatrix} q_0 \\ q_1 \\ q_2 \\ q_3 \\ b_{gx} \\ b_{gy} \\ b_{gz} \end{bmatrix} \in \mathbb{R}^7
+    \label{eq:ekf_state}
+\end{equation}
+
+상태 벡터 선택의 근거:
+\begin{itemize}
+    \item \textbf{쿼터니언 $\mathbf{q}$}: 짐벌 락 없이 전역적으로 안정적인 자세 표현.
+          단위 노름 제약($\|\mathbf{q}\| = 1$)으로 인해 실질적인 자유도는 3.
+    \item \textbf{자이로 바이어스 $\mathbf{b}_g$}: 2장에서 기술한 랜덤 워크 모델을 따르는
+          시변 바이어스를 EKF에서 온라인으로 추정하여 드리프트를 보정.
+\end{itemize}
+
+가속도계 바이어스는 3장 캘리브레이션에서 오프라인으로 제거하므로 상태 벡터에 포함하지 않는다.
+
+% ------------------------------------------------------------
+\subsubsection{Prediction Step}
+
+\paragraph{상태 전파}
+
+4.3절의 이산시간 운동학 모델로 상태를 전파한다:
+
+\begin{equation}
+    \hat{\mathbf{q}}_{k|k-1} = \hat{\mathbf{q}}_{k-1} + \frac{\Delta t}{2}\boldsymbol{\Omega}(\hat{\boldsymbol{\omega}}_k)\hat{\mathbf{q}}_{k-1}
+    \label{eq:ekf_state_prop}
+\end{equation}
+
+\noindent 여기서 $\hat{\boldsymbol{\omega}}_k = \tilde{\boldsymbol{\omega}}_k - \hat{\mathbf{b}}_{g,k-1}$은
+바이어스 보정된 각속도이다.
+
+바이어스는 랜덤 워크 모델을 따르므로 예측값은 이전 값과 동일하다:
+
+\begin{equation}
+    \hat{\mathbf{b}}_{g,k|k-1} = \hat{\mathbf{b}}_{g,k-1}
+    \label{eq:ekf_bias_prop}
+\end{equation}
+
+\paragraph{Jacobian $\mathbf{F}_k$ 계산}
+
+상태 천이 행렬은 4.3.2절의 선형화 결과로부터:
+
+\begin{equation}
+    \mathbf{F}_k = \mathbf{I}_7 + \mathbf{F}_c\,\Delta t =
+    \begin{bmatrix}
+        \mathbf{I}_4 + \frac{\Delta t}{2}\boldsymbol{\Omega}(\hat{\boldsymbol{\omega}}_k) &
+        -\frac{\Delta t}{2}\boldsymbol{\Xi}(\hat{\mathbf{q}}_{k-1}) \\[6pt]
+        \mathbf{0}_{3\times 4} & \mathbf{I}_3
+    \end{bmatrix}
+    \label{eq:ekf_F_matrix}
+\end{equation}
+
+\noindent 여기서 $\boldsymbol{\Xi}(\hat{\mathbf{q}}) \in \mathbb{R}^{4\times 3}$은
+식 \eqref{eq:xi_matrix}에서 벡터 부분만 취한 행렬이다.
+
+\paragraph{공분산 전파}
+
+\begin{equation}
+    \mathbf{P}_{k|k-1} = \mathbf{F}_k\,\mathbf{P}_{k-1}\,\mathbf{F}_k^\top + \mathbf{Q}
+    \label{eq:ekf_cov_prop}
+\end{equation}
+
+\noindent 여기서 $\mathbf{Q} \in \mathbb{R}^{7\times 7}$은 공정 잡음 공분산 행렬이다
+(5.3.6절 참조).
+
+% ------------------------------------------------------------
+\subsubsection{Update Step — Accelerometer}
+
+\paragraph{잔차 계산}
+
+4.4.1절의 가속도계 관측 모델로부터 잔차를 계산한다:
+
+\begin{equation}
+    \boldsymbol{\nu}_{a,k} = \tilde{\mathbf{a}}_k - \mathbf{h}_a(\hat{\mathbf{q}}_{k|k-1})
+    \label{eq:ekf_accel_innovation}
+\end{equation}
+
+동적 가속도 감지 조건을 적용하여 선형 가속도가 존재하는 경우 Update를 건너뛴다:
+
+\begin{equation}
+    \text{Update 조건:} \quad \left|\,\|\tilde{\mathbf{a}}_k\| - g\,\right| < \epsilon_a, \qquad \epsilon_a = 0.5\,\text{m/s}^2
+    \label{eq:ekf_accel_condition}
+\end{equation}
+
+\paragraph{Jacobian $\mathbf{H}_{a,k}$ 계산}
+
+$\mathbf{h}_a(\mathbf{q}) = g\,[2(q_1 q_3 - q_0 q_2),\, 2(q_2 q_3 + q_0 q_1),\, q_0^2 - q_1^2 - q_2^2 + q_3^2]^\top$의
+쿼터니언에 대한 편미분:
+
+\begin{equation}
+    \frac{\partial \mathbf{h}_a}{\partial \mathbf{q}} = 2g\begin{bmatrix}
+        -q_2 &  q_3 & -q_0 &  q_1 \\
+         q_1 &  q_0 &  q_3 &  q_2 \\
+         q_0 & -q_1 & -q_2 &  q_3
+    \end{bmatrix}
+    \label{eq:ekf_Ha_quat}
+\end{equation}
+
+바이어스에 대한 편미분은 $\mathbf{0}_{3\times 3}$이므로:
+
+\begin{equation}
+    \mathbf{H}_{a,k} = \left[\frac{\partial \mathbf{h}_a}{\partial \mathbf{q}}\,\Bigg|\, \mathbf{0}_{3\times 3}\right] \in \mathbb{R}^{3\times 7}
+    \label{eq:ekf_Ha}
+\end{equation}
+
+\paragraph{Kalman Gain 및 상태 갱신}
+
+\begin{align}
+    \mathbf{S}_{a,k} &= \mathbf{H}_{a,k}\mathbf{P}_{k|k-1}\mathbf{H}_{a,k}^\top + \mathbf{R}_a \label{eq:ekf_Sa} \\
+    \mathbf{K}_{a,k} &= \mathbf{P}_{k|k-1}\mathbf{H}_{a,k}^\top \mathbf{S}_{a,k}^{-1} \label{eq:ekf_Ka} \\
+    \hat{\mathbf{x}}_{k|k}^{(a)} &= \hat{\mathbf{x}}_{k|k-1} + \mathbf{K}_{a,k}\boldsymbol{\nu}_{a,k} \label{eq:ekf_state_update_a} \\
+    \mathbf{P}_{k|k}^{(a)} &= \left(\mathbf{I}_7 - \mathbf{K}_{a,k}\mathbf{H}_{a,k}\right)\mathbf{P}_{k|k-1} \label{eq:ekf_cov_update_a}
+\end{align}
+
+수치 안정성을 위해 Joseph 형태의 공분산 갱신을 사용하는 것이 권장된다:
+
+\begin{equation}
+    \mathbf{P}_{k|k}^{(a)} = \left(\mathbf{I}_7 - \mathbf{K}_{a,k}\mathbf{H}_{a,k}\right)\mathbf{P}_{k|k-1}\left(\mathbf{I}_7 - \mathbf{K}_{a,k}\mathbf{H}_{a,k}\right)^\top + \mathbf{K}_{a,k}\mathbf{R}_a\mathbf{K}_{a,k}^\top
+    \label{eq:ekf_joseph}
+\end{equation}
+
+% ------------------------------------------------------------
+\subsubsection{Update Step — Magnetometer}
+
+가속도계 Update 후의 상태 $\hat{\mathbf{x}}_{k|k}^{(a)}$를 이용하여
+지자기계 관측으로 yaw를 추가 보정한다.
+
+\paragraph{잔차 계산}
+
+\begin{equation}
+    \boldsymbol{\nu}_{m,k} = \mathbf{m}_{\text{calib},k} - \mathbf{h}_m\!\left(\hat{\mathbf{q}}_{k|k}^{(a)}\right)
+    \label{eq:ekf_mag_innovation}
+\end{equation}
+
+\paragraph{Jacobian $\mathbf{H}_{m,k}$ 계산}
+
+기준 자기장 $\mathbf{m}^n = [m_N, 0, m_D]^\top$에 대한 관측 Jacobian:
+
+\begin{equation}
+    \frac{\partial \mathbf{h}_m}{\partial \mathbf{q}} = 2\begin{bmatrix}
+        m_N q_0 - m_D q_2 & m_N q_1 + m_D q_3 & -m_N q_2 - m_D q_0 & -m_N q_3 + m_D q_1 \\
+        m_N q_3 - m_D q_1 & m_N q_2 - m_D q_0 &  m_N q_1 + m_D q_3 &  m_N q_0 + m_D q_2 \\   % sign corrected row
+       -m_N q_2 + m_D q_0 & m_N q_3 - m_D q_1 & -m_N q_0 + m_D q_2 &  m_N q_1 + m_D q_3
+    \end{bmatrix}
+    \label{eq:ekf_Hm_quat}
+\end{equation}
+
+\begin{equation}
+    \mathbf{H}_{m,k} = \left[\frac{\partial \mathbf{h}_m}{\partial \mathbf{q}}\,\Bigg|\, \mathbf{0}_{3\times 3}\right] \in \mathbb{R}^{3\times 7}
+    \label{eq:ekf_Hm}
+\end{equation}
+
+\paragraph{Kalman Gain 및 상태 갱신}
+
+\begin{align}
+    \mathbf{K}_{m,k} &= \mathbf{P}_{k|k}^{(a)}\mathbf{H}_{m,k}^\top\left(\mathbf{H}_{m,k}\mathbf{P}_{k|k}^{(a)}\mathbf{H}_{m,k}^\top + \mathbf{R}_m\right)^{-1} \label{eq:ekf_Km} \\
+    \hat{\mathbf{x}}_k &= \hat{\mathbf{x}}_{k|k}^{(a)} + \mathbf{K}_{m,k}\boldsymbol{\nu}_{m,k} \label{eq:ekf_state_update_m} \\
+    \mathbf{P}_k &= \left(\mathbf{I}_7 - \mathbf{K}_{m,k}\mathbf{H}_{m,k}\right)\mathbf{P}_{k|k}^{(a)} \label{eq:ekf_cov_update_m}
+\end{align}
+
+% ------------------------------------------------------------
+\subsubsection{Noise Covariance Tuning (Q / R)}
+
+\paragraph{공정 잡음 공분산 $\mathbf{Q}$}
+
+3장의 Allan Variance 분석 결과로부터 $\mathbf{Q}$를 설정한다.
+상태 벡터 $\mathbf{x} = [\mathbf{q}^\top, \mathbf{b}_g^\top]^\top$에 대응하는
+공정 잡음 공분산은 다음과 같이 구성된다:
+
+\begin{equation}
+    \mathbf{Q} = \begin{bmatrix} \mathbf{Q}_q & \mathbf{0}_{4\times 3} \\ \mathbf{0}_{3\times 4} & \mathbf{Q}_b \end{bmatrix}
+    \label{eq:ekf_Q}
+\end{equation}
+
+쿼터니언 잡음 공분산 $\mathbf{Q}_q \in \mathbb{R}^{4\times 4}$은
+각속도 백색 잡음 분산 $\sigma_w^2$로부터:
+
+\begin{equation}
+    \mathbf{Q}_q = \frac{\Delta t^2}{4}\boldsymbol{\Xi}(\hat{\mathbf{q}})\,\sigma_w^2 \mathbf{I}_3\,\boldsymbol{\Xi}(\hat{\mathbf{q}})^\top
+    \label{eq:ekf_Qq}
+\end{equation}
+
+바이어스 잡음 공분산 $\mathbf{Q}_b \in \mathbb{R}^{3\times 3}$은
+랜덤 워크 강도 $\sigma_{rw}^2$로부터:
+
+\begin{equation}
+    \mathbf{Q}_b = \sigma_{rw}^2\,\Delta t\,\mathbf{I}_3
+    \label{eq:ekf_Qb}
+\end{equation}
+
+\noindent 여기서 $\sigma_w^2$와 $\sigma_{rw}^2$는 식 \eqref{eq:arw_discrete},
+\eqref{eq:rrw_discrete}에서 Allan Variance 분석으로 결정된 값이다.
+
+\paragraph{측정 잡음 공분산 $\mathbf{R}$}
+
+가속도계 측정 잡음 공분산:
+
+\begin{equation}
+    \mathbf{R}_a = \sigma_a^2\,\mathbf{I}_3
+    \label{eq:ekf_Ra}
+\end{equation}
+
+지자기계 측정 잡음 공분산:
+
+\begin{equation}
+    \mathbf{R}_m = \sigma_m^2\,\mathbf{I}_3
+    \label{eq:ekf_Rm}
+\end{equation}
+
+$\sigma_a^2$, $\sigma_m^2$는 3장 캘리브레이션 검증에서 추정한 잔차 분산으로 초기화하며,
+시뮬레이션 및 실험을 통해 미세 조정한다.
+
+\paragraph{초기 공분산 $\mathbf{P}_0$}
+
+초기 자세 불확실도가 큰 경우 $\mathbf{P}_0$를 크게 설정하여
+초기 수렴 속도를 높인다:
+
+\begin{equation}
+    \mathbf{P}_0 = \text{diag}\left(\sigma_{q0}^2\,\mathbf{1}_4,\, \sigma_{b0}^2\,\mathbf{1}_3\right)
+    \label{eq:ekf_P0}
+\end{equation}
+
+일반적으로 $\sigma_{q0} = 1$, $\sigma_{b0} = 0.01\,\text{rad/s}$를 초기값으로 사용한다.
+
+% ------------------------------------------------------------
+\subsubsection{Quaternion Normalization}
+
+EKF의 선형화 과정에서 단위 쿼터니언의 노름 제약($\|\mathbf{q}\| = 1$)이
+자동으로 유지되지 않는다.
+수치 오차가 누적되면 $\|\mathbf{q}\| \neq 1$이 되어 DCM 계산에 오차가 발생하므로,
+매 Update 단계 후 정규화를 수행한다:
+
+\begin{equation}
+    \hat{\mathbf{q}}_k \leftarrow \frac{\hat{\mathbf{q}}_k}{\|\hat{\mathbf{q}}_k\|}
+    \label{eq:ekf_quat_normalize}
+\end{equation}
+
+정규화 후 공분산 행렬도 일관성을 위해 투영(projection)할 수 있다:
+
+\begin{equation}
+    \mathbf{P}_k \leftarrow \mathbf{P}_{\perp,k} = \left(\mathbf{I}_7 - \mathbf{n}\mathbf{n}^\top\right)\mathbf{P}_k\left(\mathbf{I}_7 - \mathbf{n}\mathbf{n}^\top\right)^\top
+    \label{eq:ekf_cov_project}
+\end{equation}
+
+\noindent 여기서 $\mathbf{n} = [\hat{\mathbf{q}}_k^\top, \mathbf{0}_{1\times 3}]^\top / \|\hat{\mathbf{q}}_k\|$이다.
+실용적인 구현에서는 공분산 투영을 생략하고 정규화만 적용하는 경우가 많으며,
+이는 고주파 샘플링($f_s \geq 50\,\text{Hz}$)에서 충분히 안정적이다.
+
+\paragraph{필터 비교 요약}
+
+표 \ref{tab:filter_full_comparison}에 본 장에서 설계한 세 가지 필터의
+전체 특성을 비교하였다.
+
+\begin{table}[H]
+    \centering
+    \caption{AHRS 알고리즘 종합 비교}
+    \label{tab:filter_full_comparison}
+    \begin{tabular}{lcccc}
+        \toprule
+        특성 & CF & Mahony & Madgwick & EKF \\
+        \midrule
+        자세 표현 & 오일러 / 쿼터 & 쿼터니언 & 쿼터니언 & 쿼터니언 \\
+        바이어스 추정 & $\times$ & $\checkmark$ & $\times$ & $\checkmark$ \\
+        최적 추정 & $\times$ & $\times$ & $\times$ & $\checkmark$ \\
+        잡음 모델 활용 & $\times$ & $\times$ & $\times$ & $\checkmark$ \\
+        튜닝 파라미터 수 & 1 & 2 & 1 & $\mathbf{Q},\,\mathbf{R}$ \\
+        계산 복잡도 & $O(1)$ & $O(1)$ & $O(1)$ & $O(n^2)$ \\
+        짐벌 락 & 조건부 & 없음 & 없음 & 없음 \\
+        \bottomrule
+    \end{tabular}
+\end{table}

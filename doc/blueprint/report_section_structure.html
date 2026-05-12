@@ -1,0 +1,111 @@
+<style>
+.sec { padding: 10px 14px; border-radius: 8px; margin-bottom: 6px; }
+.sec-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 2px; }
+.sec-sub { font-size: 12px; color: var(--color-text-secondary); }
+.tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; font-weight: 400; }
+.col { display: flex; gap: 16px; }
+.col > div { flex: 1; min-width: 0; }
+.label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin: 18px 0 6px; }
+</style>
+
+<div style="padding: 4px 0 16px">
+
+<div class="label">도입부</div>
+
+<div class="sec" style="background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary)">
+  <div class="sec-title">1. Introduction</div>
+  <div class="sec-sub">IMU의 역할 및 응용 (로봇, 위성, 항법) · 프로젝트 목적 · 보고서 구성</div>
+</div>
+
+<div class="label">센서 이론</div>
+
+<div class="sec" style="background: #EEEDFE; border: 0.5px solid #AFA9EC">
+  <div class="sec-title">2. IMU Sensor Fundamentals
+    <span class="tag" style="background:#CECBF6; color:#3C3489">이론</span>
+  </div>
+  <div class="sec-sub">2.1 Accelerometer 동작 원리 · 2.2 Gyroscope 동작 원리 · 2.3 Magnetometer 동작 원리 · 2.4 MPU-9250 하드웨어 구성 &amp; I²C 인터페이스</div>
+</div>
+
+<div class="label">노이즈 모델링</div>
+
+<div class="sec" style="background: #E1F5EE; border: 0.5px solid #5DCAA5">
+  <div class="sec-title">3. IMU Noise Modeling
+    <span class="tag" style="background:#9FE1CB; color:#085041">분석</span>
+  </div>
+  <div class="sec-sub">3.1 노이즈 성분 분류 (white noise, bias instability, flicker, RRW) · 3.2 연속시간 확률 모델 · 3.3 이산시간 등가 모델 (sampling 효과) · 3.4 Allan Variance — 이론 유도 · 3.5 PSD 분석</div>
+</div>
+
+<div class="label">센서 캘리브레이션</div>
+
+<div class="sec" style="background: #E6F1FB; border: 0.5px solid #85B7EB">
+  <div class="sec-title">4. Sensor Calibration
+    <span class="tag" style="background:#B5D4F4; color:#0C447C">실험</span>
+  </div>
+  <div class="sec-sub">4.1 정적 캘리브레이션 — bias, scale factor, misalignment · 4.2 Gyro ARW &amp; BI 추정 (Allan 결과 활용) · 4.3 Magnetometer Hard Iron / Soft Iron 보정 (ellipsoid fitting) · 4.4 캘리브레이션 검증</div>
+</div>
+
+<div class="label">상태 추정 이론</div>
+
+<div class="sec" style="background: #EEEDFE; border: 0.5px solid #AFA9EC">
+  <div class="sec-title">5. Attitude Estimation — System Modeling
+    <span class="tag" style="background:#CECBF6; color:#3C3489">이론</span>
+  </div>
+  <div class="sec-sub">5.1 좌표계 정의 (NED, body frame) · 5.2 자세 표현 (Euler, DCM, Quaternion) · 5.3 연속시간 운동학 (quaternion kinematics) · 5.4 이산화 (ZOH 근사, F = I + Fc·dt) · 5.5 관측 모델 — accel (roll/pitch), mag (yaw)</div>
+</div>
+
+<div class="label">필터 설계</div>
+
+<div class="col">
+  <div>
+    <div class="sec" style="background: #FAEEDA; border: 0.5px solid #EF9F27">
+      <div class="sec-title">6. Complementary Filter
+        <span class="tag" style="background:#FAC775; color:#633806">구현</span>
+      </div>
+      <div class="sec-sub">6.1 주파수 영역 해석 · 6.2 설계 &amp; 파라미터 튜닝 · 6.3 한계</div>
+    </div>
+    <div class="sec" style="background: #FAEEDA; border: 0.5px solid #EF9F27; margin-top: 6px">
+      <div class="sec-title">7. Mahony / Madgwick Filter
+        <span class="tag" style="background:#FAC775; color:#633806">구현</span>
+      </div>
+      <div class="sec-sub">7.1 gradient descent 기반 자세 보정 · 7.2 파라미터 특성</div>
+    </div>
+  </div>
+  <div>
+    <div class="sec" style="background: #FAEEDA; border: 0.5px solid #EF9F27" style="height: 100%">
+      <div class="sec-title">8. Extended Kalman Filter
+        <span class="tag" style="background:#FAC775; color:#633806">핵심</span>
+      </div>
+      <div class="sec-sub">8.1 EKF 알고리즘 흐름 · 8.2 State 정의 (q, b_g) · 8.3 Prediction — Jacobian F, Q 설정 · 8.4 Update — accel 관측 (roll/pitch) · 8.5 Update — mag 추가 (yaw) · 8.6 Q/R 튜닝 (Allan 연계) · 8.7 quaternion normalization</div>
+    </div>
+  </div>
+</div>
+
+<div class="label">시뮬레이션</div>
+
+<div class="sec" style="background: #EAF3DE; border: 0.5px solid #97C459">
+  <div class="sec-title">9. Simulation
+    <span class="tag" style="background:#C0DD97; color:#27500A">검증</span>
+  </div>
+  <div class="sec-sub">9.1 IMU 시뮬레이터 구성 (synthetic trajectory + noise 주입) · 9.2 필터별 roll/pitch 성능 비교 · 9.3 w/ mag vs w/o mag (yaw 비교) · 9.4 RMSE, convergence time 지표</div>
+</div>
+
+<div class="label">실험 결과</div>
+
+<div class="sec" style="background: #FAECE7; border: 0.5px solid #F0997B">
+  <div class="sec-title">10. Experimental Results
+    <span class="tag" style="background:#F5C4B3; color:#712B13">실측</span>
+  </div>
+  <div class="sec-sub">10.1 Allan Variance &amp; PSD 결과 · 10.2 캘리브레이션 전후 비교 · 10.3 정적 자세 추정 정확도 · 10.4 동적 자세 추정 (필터별) · 10.5 Sim vs 실측 비교</div>
+</div>
+
+<div class="sec" style="background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); margin-top: 6px">
+  <div class="sec-title">11. Discussion &amp; Conclusion</div>
+  <div class="sec-sub">필터 비교 분석 · 한계 및 개선 방향 (IMU preintegration, UKF 등) · 결론</div>
+</div>
+
+<div class="sec" style="background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); margin-top: 6px">
+  <div class="sec-title">Appendix</div>
+  <div class="sec-sub">A. Quaternion 대수 · B. Jacobian 전체 유도 · C. 코드 구조 설명</div>
+</div>
+
+</div>

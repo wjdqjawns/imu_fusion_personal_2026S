@@ -1,0 +1,363 @@
+\section{System Modeling for Attitude Estimation}
+    자세 추정(Attitude Estimation)은 IMU 센서 데이터를 이용하여 물체의 3차원 방향(orientation)을 실시간으로 결정하는 문제이다. 이를 위해서는 먼저 좌표계를 명확히 정의하고, 자세를 수학적으로 표현하는 방법과 시간에 따른 자세 변화를 기술하는 운동학 모델, 그리고 센서 측정값으로부터 자세를 관측하는 모델을 수립해야 한다. 본 장에서는 이러한 시스템 모델링의 전체 과정을 체계적으로 기술하며, 5장의 AHRS 알고리즘 설계를 위한 수학적 기반을 제공한다.\\
+
+    \subsection{Coordinate Frames}
+        자세 추정 문제에서는 복수의 좌표계가 사용되며, 이들 사이의 관계를 명확히 정의하는 것이 핵심이다.\\
+
+        \subsubsection{Navigation Frame (NED)}
+            내비게이션 좌표계(Navigation Frame)는 지구 표면에 고정된 기준 좌표계로, 본 연구에서는 NED(North-East-Down) 규약을 채택한다.
+            
+            \begin{itemize}
+                \item $x^n$축: 지리적 북쪽(North) 방향
+                \item $y^n$축: 지리적 동쪽(East) 방향
+                \item $z^n$축: 중력 방향(Down), 즉 지구 중심 방향
+            \end{itemize}
+
+            NED 좌표계에서 중력 벡터는 다음과 같다:\\
+
+            \begin{equation}
+                \mathbf{g}^n = \begin{bmatrix} 0 \\ 0 \\ g \end{bmatrix}, \qquad g \approx 9.81\,\text{m/s}^2
+                \label{eq:gravity_ned}
+            \end{equation}
+
+            지구 자기장 벡터는 위도에 따라 다르나, 일반적으로 다음과 같이 표현된다:\\
+
+            \begin{equation}
+                \mathbf{m}^n = \begin{bmatrix} m_N \\ 0 \\ m_D \end{bmatrix}
+                \label{eq:mag_ned}
+            \end{equation}
+
+            \noindent 여기서 $m_N$은 수평 성분(북쪽), $m_D$는 수직 성분(아래)이며, 동쪽 성분은 이상적으로 0이다. 자기 편각(magnetic declination)이 존재하는 경우 $y^n$성분이 0이 아닐 수 있으나, 본 연구에서는 편각을 무시한다.\\
+
+        \subsubsection{Body Frame}
+            바디 좌표계(Body Frame)는 IMU 센서에 고정된 좌표계로, 센서의 물리적 방향에 따라 정의된다.\\
+
+            \begin{itemize}
+                \item $x^b$축: 센서 전방(Forward) 방향
+                \item $y^b$축: 센서 우측(Right) 방향
+                \item $z^b$축: 센서 하단(Down) 방향
+            \end{itemize}
+
+            가속도계와 자이로스코프의 출력은 바디 좌표계에서의 값으로 표현된다. MPU-9250의 경우 AK8963 지자기계는 별도의 좌표계를 사용하므로, 데이터 퓨전 이전에 바디 좌표계로의 축 변환이 필요하다.\\
+
+        \subsubsection{Frame Transformation}
+            NED 좌표계($n$)와 바디 좌표계($b$) 사이의 변환은 회전 행렬(Direction Cosine Matrix, DCM) $\mathbf{R}^{bn} \in \mathbb{R}^{3\times 3}$으로 표현된다:\\
+
+            \begin{equation}
+                \mathbf{v}^b = \mathbf{R}^{bn} \mathbf{v}^n
+                \label{eq:frame_transform}
+            \end{equation}
+
+            \noindent 여기서 $\mathbf{v}^n$은 NED 좌표계에서의 벡터, $\mathbf{v}^b$는 바디 좌표계에서의 동일 벡터이다. $\mathbf{R}^{bn}$은 직교 행렬(orthogonal matrix)로, 다음 성질을 만족한다:\\
+
+            \begin{equation}
+                \mathbf{R}^{bn} (\mathbf{R}^{bn})^\top = \mathbf{I}, \qquad \det(\mathbf{R}^{bn}) = +1
+                \label{eq:dcm_property}
+            \end{equation}
+
+            역변환(바디 → NED)은 전치 행렬로 수행된다:\\
+
+            \begin{equation}
+                \mathbf{v}^n = (\mathbf{R}^{bn})^\top \mathbf{v}^b = \mathbf{R}^{nb} \mathbf{v}^b
+                \label{eq:frame_inverse}
+            \end{equation}
+
+    \subsection{Attitude Representation}
+        물체의 자세(orientation)를 수학적으로 표현하는 방법은 여러 가지가 있으며, 각각 장단점이 다르다. 본 절에서는 오일러 각(Euler Angles), 방향 코사인 행렬(DCM), 쿼터니언(Quaternion)을 비교·기술한다.\\
+
+        \subsubsection{Euler Angles}
+            오일러 각은 3개의 연속적인 회전으로 자세를 표현하는 방법이다. 항공·로봇 분야에서 일반적으로 사용하는 ZYX 규약(항법각)에서는 yaw($\psi$) → pitch($\theta$) → roll($\phi$) 순서로 회전을 적용한다.\\
+
+            각 축에 대한 기본 회전 행렬은 다음과 같다:\\
+
+            \begin{equation}
+                \mathbf{R}_x(\phi) = \begin{bmatrix} 1 & 0 & 0 \\ 0 & c_\phi & s_\phi \\ 0 & -s_\phi & c_\phi \end{bmatrix}, \quad
+                \mathbf{R}_y(\theta) = \begin{bmatrix} c_\theta & 0 & -s_\theta \\ 0 & 1 & 0 \\ s_\theta & 0 & c_\theta \end{bmatrix}, \quad
+                \mathbf{R}_z(\psi) = \begin{bmatrix} c_\psi & s_\psi & 0 \\ -s_\psi & c_\psi & 0 \\ 0 & 0 & 1 \end{bmatrix}
+                \label{eq:basic_rotations}
+            \end{equation}
+
+            \noindent 여기서 $c_\alpha = \cos\alpha$, $s_\alpha = \sin\alpha$이다.\\
+
+            ZYX 규약의 전체 DCM은 다음과 같다:\\
+
+            \begin{equation}
+                \mathbf{R}^{bn} = \mathbf{R}_x(\phi)\mathbf{R}_y(\theta)\mathbf{R}_z(\psi)
+                \label{eq:dcm_euler}
+            \end{equation}
+
+            전개하면:\\
+
+            \begin{equation}
+                \mathbf{R}^{bn} = \begin{bmatrix}
+                    c_\theta c_\psi & c_\theta s_\psi & -s_\theta \\
+                    s_\phi s_\theta c_\psi - c_\phi s_\psi & s_\phi s_\theta s_\psi + c_\phi c_\psi & s_\phi c_\theta \\
+                    c_\phi s_\theta c_\psi + s_\phi s_\psi & c_\phi s_\theta s_\psi - s_\phi c_\psi & c_\phi c_\theta
+                \end{bmatrix}
+                \label{eq:dcm_zyx_full}
+            \end{equation}
+
+            \paragraph{짐벌 락 (Gimbal Lock)}
+                오일러 각의 가장 큰 문제는 짐벌 락(Gimbal Lock)이다. $\theta = \pm 90^\circ$일 때 자유도가 하나 소실되어 roll과 yaw를 구분할 수 없게 된다. 이 상태에서 오일러각의 운동학 방정식은 특이점(singularity)을 가지며, 수치 해석이 불안정해진다. 이를 피하기 위해 DCM 또는 쿼터니언 표현이 필요하다.\\
+                
+        \subsubsection{Direction Cosine Matrix (DCM)}
+            DCM $\mathbf{R}^{bn} \in SO(3)$은 9개의 원소로 자세를 표현하며, 짐벌 락 문제가 없고 벡터 회전에 직접 사용할 수 있다는 장점이 있다. 그러나 9개 원소 중 실질적인 자유도는 3이므로, 직교 정규성(orthonormality) 조건\\
+
+            \begin{equation}
+                \mathbf{R}\mathbf{R}^\top = \mathbf{I}, \qquad \det(\mathbf{R}) = 1
+                \label{eq:orthonormal}
+            \end{equation}
+
+            을 수치적으로 유지하기 위해 정규화(renormalization)가 필요하다. 연속적인 수치 적분에서 직교 정규성이 서서히 깨지는 문제가 발생하므로, IMU 기반 실시간 자세 추정에서는 쿼터니언이 더 많이 사용된다.\\
+
+        \subsubsection{Quaternion}
+            쿼터니언(Quaternion)은 4개의 실수 파라미터로 3차원 회전을 표현하는 방법으로, 짐벌 락이 없고 수치적으로 안정적이며 계산 효율이 높아 IMU 기반 자세 추정에서 가장 널리 사용된다.\\
+
+            \paragraph{정의}
+                단위 쿼터니언(unit quaternion) $\mathbf{q} \in \mathbb{H}$는 다음과 같이 정의된다:\\
+
+                \begin{equation}
+                    \mathbf{q} = \begin{bmatrix} q_0 \\ \mathbf{q}_v \end{bmatrix} = \begin{bmatrix} q_0 \\ q_1 \\ q_2 \\ q_3 \end{bmatrix}, \qquad \|\mathbf{q}\| = 1
+                    \label{eq:quaternion_def}
+                \end{equation}
+
+                \noindent 여기서 $q_0$은 스칼라 성분(scalar part), $\mathbf{q}_v = [q_1, q_2, q_3]^\top$은 벡터 성분(vector part)이다. 회전 축 $\hat{\mathbf{u}} = [u_x, u_y, u_z]^\top$을 중심으로 각도 $\alpha$만큼 회전하는 쿼터니언은 다음과 같다:\\
+
+                \begin{equation}
+                    \mathbf{q} = \begin{bmatrix} \cos(\alpha/2) \\ \hat{\mathbf{u}}\sin(\alpha/2) \end{bmatrix}
+                    \label{eq:quaternion_axis_angle}
+                \end{equation}
+
+            \paragraph{쿼터니언 곱}
+                두 쿼터니언 $\mathbf{p}$와 $\mathbf{q}$의 곱은 다음과 같이 정의된다:\\
+
+                \begin{equation}
+                    \mathbf{p} \otimes \mathbf{q} = \begin{bmatrix}
+                        p_0 q_0 - \mathbf{p}_v^\top \mathbf{q}_v \\
+                        p_0 \mathbf{q}_v + q_0 \mathbf{p}_v + \mathbf{p}_v \times \mathbf{q}_v
+                    \end{bmatrix}
+                    \label{eq:quat_product}
+                \end{equation}
+
+                행렬 형태로 표현하면:\\
+
+                \begin{equation}
+                    \mathbf{p} \otimes \mathbf{q} = \boldsymbol{\Xi}(\mathbf{p})\mathbf{q} = \boldsymbol{\Psi}(\mathbf{q})\mathbf{p}
+                    \label{eq:quat_product_matrix}
+                \end{equation}
+
+                \noindent 여기서:\\
+
+                \begin{equation}
+                    \boldsymbol{\Xi}(\mathbf{p}) = \begin{bmatrix}
+                        p_0 & -p_1 & -p_2 & -p_3 \\
+                        p_1 &  p_0 & -p_3 &  p_2 \\
+                        p_2 &  p_3 &  p_0 & -p_1 \\
+                        p_3 & -p_2 &  p_1 &  p_0
+                    \end{bmatrix}
+                    \label{eq:xi_matrix}
+                \end{equation}
+
+            \paragraph{쿼터니언과 DCM의 관계}
+                단위 쿼터니언 $\mathbf{q}$에 대응하는 DCM은 다음과 같다:\\
+
+                \begin{equation}
+                    \mathbf{R}(\mathbf{q}) = \begin{bmatrix}
+                        1 - 2(q_2^2 + q_3^2) & 2(q_1 q_2 + q_0 q_3) & 2(q_1 q_3 - q_0 q_2) \\
+                        2(q_1 q_2 - q_0 q_3) & 1 - 2(q_1^2 + q_3^2) & 2(q_2 q_3 + q_0 q_1) \\
+                        2(q_1 q_3 + q_0 q_2) & 2(q_2 q_3 - q_0 q_1) & 1 - 2(q_1^2 + q_2^2)
+                    \end{bmatrix}
+                    \label{eq:quat_to_dcm}
+                \end{equation}
+
+                역변환(DCM → 쿼터니언)은 Shepperd 방법으로 수행한다.\\
+
+            \paragraph{오일러각 변환}
+                쿼터니언으로부터 오일러각(roll, pitch, yaw)은 다음과 같이 계산된다:\\
+
+                \begin{align}
+                    \phi   &= \arctan\!\left(\frac{2(q_0 q_1 + q_2 q_3)}{1 - 2(q_1^2 + q_2^2)}\right) \label{eq:quat_to_roll} \\
+                    \theta &= \arcsin\!\left(2(q_0 q_2 - q_3 q_1)\right) \label{eq:quat_to_pitch} \\
+                    \psi   &= \arctan\!\left(\frac{2(q_0 q_3 + q_1 q_2)}{1 - 2(q_2^2 + q_3^2)}\right) \label{eq:quat_to_yaw}
+                \end{align}
+
+    \subsection{Kinematics Model}
+        운동학 모델(Kinematics Model)은 각속도 측정값으로부터 자세가 시간에 따라 어떻게 변화하는지를 기술하는 방정식이다.\\
+        
+        \subsubsection{Continuous-time Quaternion Kinematics}
+            단위 쿼터니언의 연속시간 미분 방정식은 다음과 같이 유도된다. 바디 좌표계에서의 각속도 벡터를 $\boldsymbol{\omega} = [\omega_x, \omega_y, \omega_z]^\top$이라 하면, 쿼터니언의 시간 미분은 다음과 같다:\\
+
+            \begin{equation}
+                \dot{\mathbf{q}} = \frac{1}{2} \mathbf{q} \otimes \begin{bmatrix} 0 \\ \boldsymbol{\omega} \end{bmatrix} = \frac{1}{2} \boldsymbol{\Xi}(\mathbf{q}) \begin{bmatrix} 0 \\ \boldsymbol{\omega} \end{bmatrix}
+                \label{eq:quat_kinematics_cont}
+            \end{equation}
+
+            행렬 형태로 전개하면:\\
+
+            \begin{equation}
+                \dot{\mathbf{q}} = \frac{1}{2} \boldsymbol{\Omega}(\boldsymbol{\omega}) \mathbf{q}
+                \label{eq:quat_kinematics_omega}
+            \end{equation}
+
+            \noindent 여기서 $\boldsymbol{\Omega}(\boldsymbol{\omega}) \in \mathbb{R}^{4\times 4}$는:\\
+
+            \begin{equation}
+                \boldsymbol{\Omega}(\boldsymbol{\omega}) = \begin{bmatrix}
+                    0       & -\omega_x & -\omega_y & -\omega_z \\
+                    \omega_x &  0        &  \omega_z & -\omega_y \\
+                    \omega_y & -\omega_z &  0        &  \omega_x \\
+                    \omega_z &  \omega_y & -\omega_x &  0
+                \end{bmatrix}
+                \label{eq:omega_matrix}
+            \end{equation}
+
+            EKF의 상태 벡터에 자이로 바이어스 $\mathbf{b}_g$를 포함하면, 측정 각속도 $\tilde{\boldsymbol{\omega}}$를 이용한 운동학 방정식은:\\
+
+            \begin{equation}
+                \dot{\mathbf{q}} = \frac{1}{2} \boldsymbol{\Omega}(\tilde{\boldsymbol{\omega}} - \mathbf{b}_g) \mathbf{q}
+                \label{eq:quat_kinematics_bias}
+            \end{equation}
+
+            바이어스의 연속시간 모델은 2장에서 정의한 랜덤 워크를 따른다:
+
+            \begin{equation}
+                \dot{\mathbf{b}}_g = \mathbf{n}_{rw}, \qquad \mathbf{n}_{rw} \sim \mathcal{N}(\mathbf{0},\, \mathbf{Q}_{rw})
+                \label{eq:bias_dynamics}
+            \end{equation}
+
+            따라서 연속시간 상태 방정식은:
+
+            \begin{equation}
+                \dot{\mathbf{x}} = \mathbf{f}(\mathbf{x}, \mathbf{u}) + \mathbf{w}, \qquad
+                \mathbf{x} = \begin{bmatrix} \mathbf{q} \\ \mathbf{b}_g \end{bmatrix}, \quad
+                \mathbf{u} = \tilde{\boldsymbol{\omega}}
+                \label{eq:state_equation_cont}
+            \end{equation}
+
+        \subsubsection{Discretization (ZOH Approximation)}
+            연속시간 운동학 방정식을 이산시간으로 변환하기 위해 영차 유지(Zero-Order Hold, ZOH) 근사를 적용한다.\\
+
+            샘플링 간격 $\Delta t$ 동안 각속도가 일정하다고 가정하면, 쿼터니언의 이산시간 전파(propagation)는 다음과 같다:\\
+
+            \begin{equation}
+                \mathbf{q}_{k+1} = \mathbf{q}_k \otimes \mathbf{q}_{\Delta}
+                \label{eq:quat_discrete_prop}
+            \end{equation}
+
+            \noindent 여기서 $\mathbf{q}_\Delta$는 $\Delta t$ 동안의 증분 회전 쿼터니언으로:\\
+
+            \begin{equation}
+                \mathbf{q}_\Delta = \begin{bmatrix} \cos(\|\boldsymbol{\omega}\|\Delta t / 2) \\ \hat{\boldsymbol{\omega}}\sin(\|\boldsymbol{\omega}\|\Delta t / 2) \end{bmatrix}, \qquad \hat{\boldsymbol{\omega}} = \frac{\boldsymbol{\omega}}{\|\boldsymbol{\omega}\|}
+                \label{eq:delta_quat}
+            \end{equation}
+
+            $\|\boldsymbol{\omega}\|\Delta t \ll 1$인 경우 (저속 회전 또는 높은 샘플링 주파수), 1차 근사를 적용할 수 있다:\\
+
+            \begin{equation}
+                \mathbf{q}_{k+1} \approx \left(\mathbf{I}_4 + \frac{\Delta t}{2}\boldsymbol{\Omega}_k\right)\mathbf{q}_k
+                \label{eq:quat_discrete_approx}
+            \end{equation}
+
+            선형화된 상태 천이 행렬(State Transition Matrix) $\mathbf{F} \in \mathbb{R}^{7\times 7}$은 EKF Prediction 단계에서 공분산 전파에 사용된다:\\
+
+            \begin{equation}
+                \mathbf{F} = \mathbf{I}_7 + \mathbf{F}_c \Delta t
+                \label{eq:state_transition}
+            \end{equation}
+
+            \noindent 여기서 $\mathbf{F}_c$는 연속시간 상태 방정식의 Jacobian 행렬로:\\
+
+            \begin{equation}
+                \mathbf{F}_c = \frac{\partial \mathbf{f}}{\partial \mathbf{x}} = \begin{bmatrix}
+                    \frac{1}{2}\boldsymbol{\Omega}(\boldsymbol{\omega}) & -\frac{1}{2}\boldsymbol{\Xi}(\mathbf{q}) \\
+                    \mathbf{0}_{3\times 4} & \mathbf{0}_{3\times 3}
+                \end{bmatrix}
+                \label{eq:jacobian_Fc}
+            \end{equation}
+
+            전체 Jacobian 유도 과정은 Appendix B를 참조한다.\\
+
+    \subsection{Observation Model}
+        관측 모델(Observation Model)은 현재 자세 $\mathbf{q}$가 주어졌을 때 센서가 측정해야 하는 이론값을 계산하는 함수이다. EKF의 Update 단계에서 측정 잔차(innovation)를 계산하는 데 사용된다.\\
+        
+        \subsubsection{Accelerometer Model (Roll / Pitch)}
+            정적 상태($\mathbf{a} = \mathbf{0}$)에서 가속도계는 중력 벡터의 반력을 측정한다. NED 좌표계의 중력 벡터 $\mathbf{g}^n = [0, 0, g]^\top$을 바디 좌표계로 변환하면 가속도계의 이론 측정값을 얻는다:\\
+
+            \begin{equation}
+                \mathbf{h}_a(\mathbf{q}) = \mathbf{R}(\mathbf{q})\, \mathbf{g}^n = g \begin{bmatrix}
+                    2(q_1 q_3 - q_0 q_2) \\
+                    2(q_2 q_3 + q_0 q_1) \\
+                    q_0^2 - q_1^2 - q_2^2 + q_3^2
+                \end{bmatrix}
+                \label{eq:accel_obs_model}
+            \end{equation}
+
+            이 관측 함수의 Jacobian $\mathbf{H}_a = \partial \mathbf{h}_a / \partial \mathbf{x} \in \mathbb{R}^{3\times 7}$은 EKF Kalman Gain 계산에 사용되며, 전체 유도는 Appendix B에 수록하였다.\\
+
+            측정 잔차(innovation)는 다음과 같이 계산된다:\\
+
+            \begin{equation}
+                \boldsymbol{\nu}_a = \tilde{\mathbf{a}} - \mathbf{h}_a(\hat{\mathbf{q}})
+                \label{eq:accel_innovation}
+            \end{equation}
+
+            단, 이 관측 모델은 정적 가속도 가정에 기반하므로, 동적 가속도가 존재하는 경우 잔차의 크기를 임계값과 비교하여 Update 단계를 선택적으로 적용하는 적응형(adaptive) 전략이 유효하다:\\
+
+            \begin{equation}
+                \text{Update 적용 조건:} \quad \left| \|\tilde{\mathbf{a}}\| - g \right| < \epsilon_a
+                \label{eq:accel_update_condition}
+            \end{equation}
+
+        \subsubsection{Magnetometer Model (Yaw)}
+            지자기계는 지구 자기장 벡터를 측정하여 yaw 각도(heading)를 추정하는 데 사용된다. NED 좌표계의 기준 자기장 벡터 $\mathbf{m}^n = [m_N, 0, m_D]^\top$을 바디 좌표계로 변환하면 지자기계의 이론 측정값을 얻는다:\\
+
+            \begin{equation}
+                \mathbf{h}_m(\mathbf{q}) = \mathbf{R}(\mathbf{q})\, \mathbf{m}^n
+                \label{eq:mag_obs_model}
+            \end{equation}
+
+            전개하면:\\
+
+            \begin{equation}
+                \mathbf{h}_m(\mathbf{q}) = \begin{bmatrix}
+                    m_N(1 - 2q_2^2 - 2q_3^2) + 2m_D(q_1 q_3 - q_0 q_2) \\
+                    2m_N(q_1 q_2 + q_0 q_3) + 2m_D(q_2 q_3 - q_0 q_1) \\   % corrected sign
+                    2m_N(q_1 q_3 - q_0 q_2) + m_D(1 - 2q_1^2 - 2q_2^2)
+                \end{bmatrix}
+                \label{eq:mag_obs_expanded}
+            \end{equation}
+
+            기준 자기장 벡터 $\mathbf{m}^n$은 실험 지역의 지자기 모델(예: WMM, World Magnetic Model)에서 가져오거나, 센서를 수평으로 정치한 상태에서의 측정값으로부터 추정할 수 있다.\\
+
+            지자기계 관측의 Jacobian $\mathbf{H}_m = \partial \mathbf{h}_m / \partial \mathbf{x} \in \mathbb{R}^{3\times 7}$도 마찬가지로 Appendix B에 전체 유도를 수록하였다.\\
+
+            측정 잔차는 다음과 같다:\\
+
+            \begin{equation}
+                \boldsymbol{\nu}_m = \mathbf{m}_{\text{calib}} - \mathbf{h}_m(\hat{\mathbf{q}})
+                \label{eq:mag_innovation}
+            \end{equation}
+
+            \noindent 여기서 $\mathbf{m}_{\text{calib}}$는 3장에서 보정된 자기장 측정값이다.\\
+
+            \paragraph{시스템 모델 요약}
+                본 장에서 수립한 시스템 모델을 정리하면 다음과 같다.\\
+
+                \begin{table}[H]
+                    \centering
+                    \caption{자세 추정 시스템 모델 요약}
+                    \label{tab:system_model_summary}
+                    \begin{tabular}{lll}
+                        \toprule
+                        구분 & 수식 & 차원 \\
+                        \midrule
+                        상태 벡터 & $\mathbf{x} = [\mathbf{q}^\top,\, \mathbf{b}_g^\top]^\top$ & $\mathbb{R}^7$ \\
+                        상태 방정식 & $\dot{\mathbf{x}} = \mathbf{f}(\mathbf{x},\, \tilde{\boldsymbol{\omega}}) + \mathbf{w}$ & --- \\
+                        이산화 & $\mathbf{F} = \mathbf{I}_7 + \mathbf{F}_c \Delta t$ & $\mathbb{R}^{7\times 7}$ \\
+                        가속도계 관측 & $\mathbf{h}_a(\mathbf{q}) = \mathbf{R}(\mathbf{q})\mathbf{g}^n$ & $\mathbb{R}^3$ \\
+                        지자기계 관측 & $\mathbf{h}_m(\mathbf{q}) = \mathbf{R}(\mathbf{q})\mathbf{m}^n$ & $\mathbb{R}^3$ \\
+                        공정 잡음 & $\mathbf{Q}$ (Allan Variance에서 결정) & $\mathbb{R}^{7\times 7}$ \\
+                        측정 잡음 & $\mathbf{R}_a,\, \mathbf{R}_m$ (캘리브레이션에서 결정) & $\mathbb{R}^{3\times 3}$ \\
+                        \bottomrule
+                    \end{tabular}
+                \end{table}

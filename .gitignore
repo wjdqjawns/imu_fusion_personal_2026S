@@ -1,0 +1,47 @@
+# =========================
+# Common local artifacts
+# =========================
+.claude/
+.venv/
+venv/
+ENV/
+env/
+
+# =========================
+# Python cache / packaging
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# =========================
+# Logs / environment files
+# =========================
+*.log
+.env
+
+# =========================
+# IDE / editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Generated exports
+# =========================
+export/fig/
+export/log/

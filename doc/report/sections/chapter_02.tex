@@ -1,0 +1,386 @@
+\section{IMU Sensor Modeling}
+    IMU는 물체의 운동 상태를 측정하기 위한 복합 센서 모듈로, Accelerometer, Gyroscope, 그리고 Magnetometer로 구성된다. 본 장에서는 각 센서의 MEMS 기반 동작 원리를 물리적·수학적 관점에서 기술하고, IMU 노이즈의 확률적 모델링 및 Allan Variance 분석 이론을 다룬다.\\
+
+    \subsection{Sensor Principles}
+        \subsubsection{Accelerometer}
+            \paragraph{동작 원리}
+                MEMS 가속도계는 M-C-K System을 기반으로 동작한다. 미세 가공된 실리콘 구조물 내에 질량체(proof mass)가 유연한 스프링에 매달려 있으며, 외부 가속도가 인가되면 질량체가 변위를 일으킨다. 이 변위를 정전 용량 변화(capacitive sensing)로 측정하여 가속도를 추정한다. 뉴턴의 제2법칙으로부터 스프링-질량-감쇠 시스템의 운동 방정식은 Eq.\ref{eq:accel_eom}과 같이 표현된다:
+
+                \begin{equation}
+                    m\ddot{x} + c\dot{x} + kx = m a_{\text{ext}}
+                    \label{eq:accel_eom}
+                \end{equation}
+
+                \noindent 여기서 $m$은 질량체의 질량, $c$는 감쇠 계수, $k$는 스프링 상수, $a_{\text{ext}}$는 외부 가속도, $x$는 질량체의 변위를 나타낸다.\\
+
+                정적 평형 상태($\ddot{x} = \dot{x} = 0$)에서 식 \eqref{eq:accel_eom}은 다음과 같이 단순화된다:\\
+
+                \begin{equation}
+                    x = \frac{m}{k} a_{\text{ext}}
+                    \label{eq:accel_static}
+                \end{equation}
+
+                따라서 질량체의 변위 $x$를 측정하면 외부 가속도를 역산할 수 있다. 실제 MEMS 소자에서는 고정 전극과 이동 전극 사이의 커패시턴스 차분(differential capacitance)으로 변위를 검출한다:\\
+
+                \begin{equation}
+                    \Delta C = \varepsilon \frac{A}{d^2} \Delta x
+                    \label{eq:accel_cap}
+                \end{equation}
+
+                \noindent 여기서 $\varepsilon$은 유전율, $A$는 전극 면적, $d$는 초기 전극 간격이다.\\
+
+            \paragraph{측정 모델}
+                가속도계의 측정값은 비력(specific force), 즉 중력을 포함한 선형 가속도를 반영한다. 이상적인 3축 가속도계의 측정 모델은 Eq.\ref{eq:accel_model}와 같이 표현된다:\\
+
+                \begin{equation}
+                    \tilde{\mathbf{a}} = \mathbf{a} - \mathbf{R}^{bn}\mathbf{g}^n + \mathbf{b}_a + \mathbf{n}_a
+                    \label{eq:accel_model}
+                \end{equation}
+
+                \noindent 여기서 $\tilde{\mathbf{a}} \in \mathbb{R}^3$은 측정 가속도, $\mathbf{a} \in \mathbb{R}^3$은 실제 선형 가속도, $\mathbf{R}^{bn} \in \mathbb{R}^{3\times 3}$은 내비게이션 좌표계에서 바디 좌표계로의 회전 행렬, $\mathbf{g}^n = [0,\, 0,\, g]^\top$은 NED 좌표계에서의 중력 벡터 ($g \approx 9.81\,\text{m/s}^2$), $\mathbf{b}_a \in \mathbb{R}^3$은 가속도계 바이어스, $\mathbf{n}_a \sim \mathcal{N}(\mathbf{0},\, \sigma_a^2 \mathbf{I})$는 백색 측정 잡음이다.\\
+
+                정적 상태($\mathbf{a} = \mathbf{0}$)에서 가속도계는 중력 벡터의 반력을 측정하므로, roll 및 pitch 각도를 Eq.\ref{eq:accel_rp}와 같이 추정할 수 있다:\\
+
+                \begin{equation}
+                    \phi = \arctan\!\left(\frac{\tilde{a}_y}{\tilde{a}_z}\right), \qquad
+                    \theta = \arctan\!\left(\frac{-\tilde{a}_x}{\sqrt{\tilde{a}_y^2 + \tilde{a}_z^2}}\right)
+                    \label{eq:accel_rp}
+                \end{equation}
+
+                단, 이 추정은 정적 상태에서만 유효하며, 동적 가속도가 존재할 경우 오차가 발생한다. 이를 해결하기 위해 4장에서 다루는 센서 퓨전 기법이 필요하다.\\
+
+        \subsubsection{Gyroscope}
+            \paragraph{동작 원리}
+                MEMS 자이로스코프는 코리올리 효과(Coriolis Effect)를 이용하여 각속도를 측정한다. 특정 축 방향으로 일정한 주파수 $\omega_d$로 진동하는 질량체가 회전 운동을 받으면, 진동 방향과 회전 축에 수직한 방향으로 코리올리 힘이 발생하며, 이 힘에 의한 변위를 정전 용량으로 측정하여 각속도를 역산한다.\\
+
+                질량 $m$인 물체가 속도 $\mathbf{v}$로 운동할 때, 각속도 $\boldsymbol{\Omega}$의 회전 좌표계에서 작용하는 코리올리 힘은 Eq.\ref{eq:coriolis}와 같다:\\
+
+                \begin{equation}
+                    \mathbf{F}_{\text{Cor}} = -2m\left(\boldsymbol{\Omega} \times \mathbf{v}\right)
+                    \label{eq:coriolis}
+                \end{equation}
+
+                진동 구동 방향을 $x$축, 감지 방향을 $y$축, 측정하고자 하는 회전 축을 $z$축으로 설정하면, $z$축 각속도 $\Omega_z$에 의한 코리올리 힘의 $y$성분은 다음과 같다:\\
+
+                \begin{equation}
+                    F_y = 2m\,\Omega_z\,v_x = 2m\,\Omega_z\,A_d\,\omega_d\cos(\omega_d t)
+                    \label{eq:coriolis_y}
+                \end{equation}
+
+                \noindent 여기서 $A_d$는 구동 진폭, $\omega_d$는 구동 주파수이다. 감지 방향의 변위 $y$는 이 힘에 의해 발생하며, 이를 커패시턴스 변화로 검출하여 $\Omega_z$를 역산한다. 3축 자이로스코프는 위 구조를 $x$, $y$, $z$ 세 방향에 대해 독립적으로 배치하여 구현된다.\\
+
+            \paragraph{측정 모델}
+                자이로스코프의 측정 모델은 Eq.\ref{eq:gyro_model}과 같이 나타낼 수 있다:\\
+
+                \begin{equation}
+                    \tilde{\boldsymbol{\omega}} = \boldsymbol{\omega} + \mathbf{b}_g + \mathbf{n}_g
+                    \label{eq:gyro_model}
+                \end{equation}
+
+                \noindent 여기서 $\tilde{\boldsymbol{\omega}} \in \mathbb{R}^3$은 측정 각속도,
+                $\boldsymbol{\omega} \in \mathbb{R}^3$은 실제 각속도,
+                $\mathbf{b}_g \in \mathbb{R}^3$은 자이로 바이어스,
+                $\mathbf{n}_g \sim \mathcal{N}(\mathbf{0},\, \sigma_g^2 \mathbf{I})$는 백색 측정 잡음이다.
+
+                자이로 바이어스 $\mathbf{b}_g$는 온도 및 시간에 따라 서서히 변화하는 확률적 특성을 가지며,
+                이를 1차 가우시안 마르코프 과정(Gauss-Markov process) 또는 랜덤 워크(Random Walk)로 모델링한다:
+
+                \begin{equation}
+                    \dot{\mathbf{b}}_g = \mathbf{n}_{bg}, \qquad \mathbf{n}_{bg} \sim \mathcal{N}(\mathbf{0},\, \sigma_{bg}^2 \mathbf{I})
+                    \label{eq:gyro_bias_rw}
+                \end{equation}
+
+                이 바이어스 드리프트는 각속도를 직접 적분하여 자세를 추정할 때 시간에 따라 누적 오차가 발생하는
+                드리프트(drift) 문제의 주요 원인이 된다.
+                자이로 단독으로 자세를 추정하는 Dead Reckoning 방식은 장시간 운용 시 수십 도 이상의 오차가
+                발생할 수 있어, 가속도계 및 지자기계와의 센서 퓨전이 필수적으로 요구된다.
+
+        \subsubsection{Magnetometer}
+            \paragraph{동작 원리}
+                MPU-9250에 내장된 지자기계(AK8963)는 이방성 자기저항(Anisotropic Magnetoresistance, AMR)
+                효과를 이용하여 자기장을 측정한다.
+                AMR 소자는 자성 재료(예: Permalloy)로 이루어져 있으며,
+                외부 자기장이 인가되면 전류 방향과 자기화 방향 사이의 각도 $\theta$에 따라 전기 저항이 변화한다.
+
+                AMR 소자의 저항 변화는 다음과 같이 모델링된다:
+
+                \begin{equation}
+                    R(\theta) = R_0 - \Delta R \cos^2(\theta)
+                    \label{eq:amr_resistance}
+                \end{equation}
+
+                \noindent 여기서 $R_0$은 기준 저항, $\Delta R$은 최대 저항 변화량,
+                $\theta$는 전류 방향과 자기화 방향 사이의 각도이다.
+
+                실제 소자에서는 4개의 AMR 스트립을 휘트스톤 브리지(Wheatstone Bridge) 구조로 배치하여
+                출력 전압 차이 $V_{\text{out}}$을 측정함으로써 자기장의 각 축 성분을 정량화한다:
+
+                \begin{equation}
+                    V_{\text{out}} = V_s \cdot \frac{\Delta R}{R_0} \cdot \sin(2\theta)
+                    \label{eq:wheatstone}
+                \end{equation}
+
+                \noindent 여기서 $V_s$는 공급 전압이다.
+                3축 지자기계는 이 구조를 $x$, $y$, $z$ 세 방향에 대해 독립적으로 배치하여 구현된다.
+
+            \paragraph{측정 모델}
+                지자기계의 이상적인 측정 모델은 다음과 같다:
+
+                \begin{equation}
+                    \tilde{\mathbf{m}} = \mathbf{m}_{\text{true}} + \mathbf{b}_m + \mathbf{n}_m
+                    \label{eq:mag_model_ideal}
+                \end{equation}
+
+                \noindent 여기서 $\tilde{\mathbf{m}} \in \mathbb{R}^3$은 측정 자기장,
+                $\mathbf{m}_{\text{true}} \in \mathbb{R}^3$은 실제 지구 자기장 벡터,
+                $\mathbf{b}_m \in \mathbb{R}^3$은 Hard Iron 바이어스,
+                $\mathbf{n}_m \sim \mathcal{N}(\mathbf{0},\, \sigma_m^2 \mathbf{I})$은 측정 잡음이다.
+
+                실제 환경에서는 주변 영구 자석 및 금속 구조물에 의한 \textbf{Hard Iron 왜곡}과,
+                소프트 자성체에 의한 감도 불균형인 \textbf{Soft Iron 왜곡}이 추가로 작용한다.
+                Soft Iron 효과까지 포함한 완전한 측정 모델은 다음과 같다:
+
+                \begin{equation}
+                    \tilde{\mathbf{m}} = \mathbf{W} \mathbf{m}_{\text{true}} + \mathbf{b}_m + \mathbf{n}_m
+                    \label{eq:mag_model_full}
+                \end{equation}
+
+                \noindent 여기서 $\mathbf{W} \in \mathbb{R}^{3\times 3}$은 Soft Iron 왜곡 행렬로,
+                이상적인 경우 단위 행렬 $\mathbf{I}$가 된다.
+                $\mathbf{W}$가 단위 행렬에서 벗어날수록 측정된 자기장 벡터의 크기가 방향에 따라 달라지며,
+                이를 보정하지 않으면 Yaw 추정 오차가 발생한다.
+                이 두 가지 왜곡의 보정 방법은 3장 Sensor Calibration에서 상세히 다룬다.
+
+                지자기계는 지구 자기장을 측정하여 yaw 각도(heading)를 추정하는 데 사용된다.
+                단, 지자기계는 주변 전자기 환경에 민감하며,
+                실내 환경에서는 철제 구조물, 전선, 전자 장치 등에 의한 자기 왜곡이 심각하게 발생할 수 있다.
+
+    \subsection{Noise Modeling}
+        IMU 센서의 출력에는 다양한 종류의 잡음 성분이 포함되어 있으며, 이를 정확히 모델링하지 않으면 상태 추정 알고리즘의 성능이 크게 저하된다. 본 절에서는 IMU 잡음의 확률적 모델, Allan Variance 이론, PSD 분석, 그리고 센서별 잡음 파라미터를 정리한다.\\
+
+        % ------------------------------------------------------------
+        \subsubsection{Noise Components and Stochastic Model}
+            IMU 잡음은 크게 다섯 가지 성분으로 분류된다.\\
+
+            \paragraph{(1) 백색 잡음 (White Noise / Angle Random Walk)}
+
+            백색 잡음은 주파수에 무관하게 일정한 PSD를 가지는 잡음 성분으로,
+            각속도 신호에서의 백색 잡음은 각도 랜덤 워크(Angle Random Walk, ARW)로 이어진다.
+            연속시간 확률 미분 방정식(SDE)으로 표현하면:
+
+            \begin{equation}
+                \dot{x}(t) = u(t) + w(t), \qquad w(t) \sim \mathcal{N}(0,\, \sigma_w^2)
+                \label{eq:white_noise_sde}
+            \end{equation}
+
+            이산시간 모델에서 샘플링 간격 $\Delta t$에 따른 분산 스케일링은 다음과 같다:
+
+            \begin{equation}
+                \sigma_{\text{discrete}}^2 = \frac{\sigma_w^2}{\Delta t}
+                \label{eq:white_noise_discrete}
+            \end{equation}
+
+            ARW의 단위는 일반적으로 $\text{deg}/\sqrt{\text{hr}}$ 또는 $\text{rad}/\sqrt{\text{s}}$로 표현된다.
+
+            \paragraph{(2) 바이어스 불안정성 (Bias Instability)}
+
+            바이어스 불안정성은 센서 바이어스가 시간에 따라 천천히 변화하는 현상으로,
+            1/f 플리커 잡음(Flicker Noise)에 기인한다.
+            이를 1차 가우시안 마르코프 과정으로 모델링하면:
+
+            \begin{equation}
+                \dot{b}(t) = -\frac{1}{\tau} b(t) + w_b(t), \qquad w_b(t) \sim \mathcal{N}(0,\, \sigma_b^2)
+                \label{eq:bias_instability}
+            \end{equation}
+
+            \noindent 여기서 $\tau$는 상관 시간(correlation time)이다.
+            $\tau \to \infty$이면 랜덤 워크 모델과 동일해진다.
+
+            \paragraph{(3) 각속도 랜덤 워크 (Rate Random Walk, RRW)}
+
+            RRW는 바이어스 자체가 랜덤 워크를 따라 변화하는 성분으로,
+            적분 과정에서 누적 오차를 유발한다:
+
+            \begin{equation}
+                \dot{b}(t) = w_{rw}(t), \qquad w_{rw}(t) \sim \mathcal{N}(0,\, \sigma_{rw}^2)
+                \label{eq:rrw}
+            \end{equation}
+
+            \paragraph{(4) 양자화 잡음 (Quantization Noise)}
+
+            ADC의 유한한 해상도에 의해 발생하는 잡음으로,
+            $n$비트 ADC의 경우 양자화 오차 $e_q$는 다음 범위 내에서 균등 분포를 따른다:
+
+            \begin{equation}
+                e_q \in \left[-\frac{\text{FSR}}{2^{n+1}},\, \frac{\text{FSR}}{2^{n+1}}\right]
+                \label{eq:quantization}
+            \end{equation}
+
+            \noindent 여기서 FSR(Full-Scale Range)은 센서의 측정 범위이다.
+
+            \paragraph{종합 잡음 모델}
+
+            위 성분들을 종합한 자이로스코프의 연속시간 잡음 모델은 다음과 같다:
+
+            \begin{align}
+                \tilde{\omega}(t) &= \omega(t) + b_g(t) + n_w(t) \label{eq:gyro_full_model} \\
+                \dot{b}_g(t)      &= n_{rw}(t)                   \label{eq:gyro_bias_model}
+            \end{align}
+
+            \noindent 여기서 $n_w(t) \sim \mathcal{N}(0,\, \sigma_w^2)$는 ARW에 해당하는 백색 잡음,
+            $n_{rw}(t) \sim \mathcal{N}(0,\, \sigma_{rw}^2)$는 RRW에 해당하는 바이어스 구동 잡음이다.
+
+            이 두 파라미터 $\sigma_w$, $\sigma_{rw}$는 EKF의 공정 잡음 공분산 행렬 $\mathbf{Q}$를
+            결정하는 핵심 값으로, 다음 절의 Allan Variance 분석을 통해 실측 데이터로부터 추정한다.
+
+        \subsubsection{Allan Variance}
+            Allan Variance(AVAR)는 원래 원자시계의 주파수 안정도를 분석하기 위해 개발된 기법으로, IMU 잡음 특성 분석의 표준적인 도구로 널리 사용된다. 시계열 데이터를 다양한 적분 시간(averaging time) $\tau$에 대해 분석함으로써, 각 잡음 성분을 주파수 특성에 따라 분리하여 정량화할 수 있다.\\
+
+            \paragraph{이론 유도}
+
+                정지 상태에서 측정된 자이로스코프 출력 $\omega(t)$를 샘플링 간격 $\Delta t$로 $N$개 수집했다고 하자. 적분 시간 $\tau = m \Delta t$ ($m$은 양의 정수)에 대해 클러스터 평균(cluster average)을 정의한다:\\
+
+                \begin{equation}
+                    \bar{\omega}_k(\tau) = \frac{1}{\tau} \int_{t_k}^{t_k + \tau} \omega(t)\, dt
+                    \approx \frac{1}{m} \sum_{i=0}^{m-1} \omega_{km+i}
+                    \label{eq:cluster_avg}
+                \end{equation}
+
+                Allan Variance는 인접한 두 클러스터 평균의 차이의 분산으로 정의된다:\\
+
+                \begin{equation}
+                    \sigma^2(\tau) = \frac{1}{2} \left\langle \left( \bar{\omega}_{k+1}(\tau) - \bar{\omega}_k(\tau) \right)^2 \right\rangle
+                    \label{eq:avar_def}
+                \end{equation}
+
+                유한한 $N$개의 샘플에 대한 추정량은 다음과 같다:\\
+
+                \begin{equation}
+                    \hat{\sigma}^2(\tau) = \frac{1}{2(M-1)} \sum_{k=1}^{M-1} \left( \bar{\omega}_{k+1} - \bar{\omega}_k \right)^2, \qquad M = \left\lfloor \frac{N}{m} \right\rfloor
+                    \label{eq:avar_estimate}
+                \end{equation}
+
+            \paragraph{잡음 성분별 Allan Variance 특성}
+                Allan Deviation(ADEV, $\sigma(\tau) = \sqrt{\hat{\sigma}^2(\tau)}$)을 log-log 스케일로 표현하면, 각 잡음 성분은 특정 기울기(slope)를 가지는 직선으로 나타난다. 이를 표 \ref{tab:avar_slopes}에 정리하였다.\\
+
+                \begin{table}[H]
+                    \centering
+                    \caption{Allan Deviation의 잡음 성분별 특성}
+                    \label{tab:avar_slopes}
+                    \begin{tabular}{lccc}
+                        \toprule
+                        잡음 성분 & 기울기 (log-log) & ADEV 표현 & 단위 \\
+                        \midrule
+                        Quantization Noise & $-1$ & $\sigma = Q/\tau$ & $\text{deg}/\text{s}$ \\
+                        Angle Random Walk (ARW) & $-1/2$ & $\sigma = N/\sqrt{\tau}$ & $\text{deg}/\sqrt{\text{hr}}$ \\
+                        Bias Instability (BI) & $0$ & $\sigma = B$ (최솟값) & $\text{deg}/\text{hr}$ \\
+                        Rate Random Walk (RRW) & $+1/2$ & $\sigma = K\sqrt{\tau}$ & $\text{deg}/\text{hr}^{3/2}$ \\
+                        Rate Ramp & $+1$ & $\sigma = R\tau$ & $\text{deg}/\text{hr}^2$ \\
+                        \bottomrule
+                    \end{tabular}
+                \end{table}
+
+                각 잡음 계수는 다음과 같이 Allan Deviation 곡선에서 읽어낼 수 있다:\\
+
+                \begin{itemize}
+                    \item \textbf{ARW 계수 $N$}: $\tau = 1\,\text{s}$일 때의 Allan Deviation 값, 또는 기울기 $-1/2$ 직선의 $\tau = 1$에서의 절편
+                    \item \textbf{BI 계수 $B$}: Allan Deviation 곡선의 최솟값
+                    \item \textbf{RRW 계수 $K$}: 기울기 $+1/2$ 직선의 $\tau = 3\,\text{hr}$에서의 절편
+                \end{itemize}
+
+                추정된 ARW 계수 $N$과 RRW 계수 $K$는 각각 EKF의 공정 잡음 공분산 행렬에서 각속도 백색 잡음 분산 $\sigma_w^2$와 바이어스 드리프트 분산 $\sigma_{rw}^2$에 대응된다.\\
+
+        \subsubsection{Power Spectral Density}
+
+            전력 스펙트럼 밀도(Power Spectral Density, PSD)는 신호의 주파수 성분별 에너지 분포를 나타내며, Allan Variance와 상호 보완적인 분석 도구이다.\\
+
+            \paragraph{PSD와 Allan Variance의 관계}
+
+                PSD $S(\omega)$와 Allan Variance $\sigma^2(\tau)$ 사이에는 다음과 같은 관계가 성립한다:\\
+
+                \begin{equation}
+                    \sigma^2(\tau) = 4 \int_0^\infty S(f) \frac{\sin^4(\pi f \tau)}{(\pi f \tau)^2}\, df
+                    \label{eq:avar_psd_relation}
+                \end{equation}
+
+                \noindent 여기서 $f$는 주파수(Hz)이다. 이 관계를 통해 PSD와 AVAR는 동일한 잡음 특성을 서로 다른 도메인에서 분석하는 도구임을 알 수 있다.\\
+
+            \paragraph{잡음 성분별 PSD 특성}
+
+                각 잡음 성분은 PSD에서 특정 주파수 의존성을 나타낸다:\\
+
+                \begin{equation}
+                    S(f) \propto f^\alpha
+                    \label{eq:psd_slope}
+                \end{equation}
+
+                \begin{table}[H]
+                    \centering
+                    \caption{잡음 성분별 PSD 특성}
+                    \label{tab:psd_slopes}
+                    \begin{tabular}{lcc}
+                        \toprule
+                        잡음 성분 & PSD 지수 $\alpha$ & 특성 \\
+                        \midrule
+                        White Noise (ARW) & $0$ & 주파수 무관 (평탄) \\
+                        Flicker Noise (BI) & $-1$ & 저주파 지배 \\
+                        Random Walk (RRW) & $-2$ & 저주파 급격 증가 \\
+                        \bottomrule
+                    \end{tabular}
+                \end{table}
+
+                실제 IMU 데이터의 PSD 분석은 Welch 방법(Welch's method)을 사용하며, 주파수 분해능(frequency resolution)은 $\Delta f = f_s / N$으로 결정된다. 여기서 $f_s$는 샘플링 주파수, $N$은 FFT 포인트 수이다.\\
+
+        \subsubsection{Sensor-specific Noise Parameters}
+
+            각 센서의 잡음 특성은 동작 원리 및 제조 특성에 따라 다르다. 표 \ref{tab:sensor_noise}에 각 센서별 주요 잡음 성분과 EKF 설계에서의 역할을 정리하였다.\\
+
+            \begin{table}[H]
+                \centering
+                \caption{IMU 센서별 주요 잡음 성분}
+                \label{tab:sensor_noise}
+                \begin{tabular}{lccc}
+                    \toprule
+                    잡음 성분 & 가속도계 & 자이로스코프 & 지자기계 \\
+                    \midrule
+                    White Noise (ARW/VRW) & $\checkmark$ & $\checkmark$ (지배적) & $\checkmark$ \\
+                    Bias Instability & $\checkmark$ & $\checkmark$ (지배적) & $\triangle$ \\
+                    Rate Random Walk & $\triangle$ & $\checkmark$ & --- \\
+                    양자화 잡음 & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+                    \bottomrule
+                \end{tabular}
+            \end{table}
+
+            \noindent ($\checkmark$: 주요 성분, $\triangle$: 부차적 성분, ---: 무시 가능)
+
+            각 센서의 측정 잡음 모델 및 EKF 연계를 아래에 정리한다.\\
+
+            \paragraph{가속도계 잡음}
+                가속도계의 주요 잡음 성분은 백색 잡음(VRW: Velocity Random Walk)이며, 측정 모델에서의 잡음 공분산은 다음과 같다:\\
+
+                \begin{equation}
+                    \mathbf{R}_a = \sigma_a^2 \mathbf{I}_{3\times 3}
+                    \label{eq:accel_noise_cov}
+                \end{equation}
+
+                이 값은 EKF Update 단계에서 가속도계 관측 잡음 행렬 $\mathbf{R}$의 가속도 성분으로 사용된다.\\
+
+            \paragraph{자이로스코프 잡음}
+                자이로스코프는 ARW와 Bias Instability(BI)가 모두 중요하며, 이 두 성분은 EKF 공정 잡음 공분산 $\mathbf{Q}$에 직접 반영된다:
+
+                \begin{equation}
+                    \mathbf{Q} = \begin{bmatrix} \sigma_w^2 \mathbf{I}_{3\times 3} & \mathbf{0} \\ \mathbf{0} & \sigma_{rw}^2 \mathbf{I}_{3\times 3} \end{bmatrix}
+                    \label{eq:gyro_Q}
+                \end{equation}
+
+                여기서 $\sigma_w^2$는 ARW에서 유도되는 각속도 백색 잡음 분산, $\sigma_{rw}^2$는 RRW에서 유도되는 바이어스 드리프트 분산이다. 이 파라미터들은 3장의 Allan Variance 실측 결과로부터 결정된다.\\
+
+            \paragraph{지자기계 잡음}
+                지자기계의 잡음은 주로 백색 잡음이 지배적이며, 측정 잡음 공분산은 다음과 같다:\\
+
+                \begin{equation}
+                    \mathbf{R}_m = \sigma_m^2 \mathbf{I}_{3\times 3}
+                    \label{eq:mag_noise_cov}
+                \end{equation}
+
+                단, 실내 환경에서의 자기 왜곡은 잡음 모델로 완전히 표현되지 않으므로, 3장의 Hard/Soft Iron 보정이 선행되어야 한다.\\
