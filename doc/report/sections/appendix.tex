@@ -1,0 +1,593 @@
+% ============================================================
+\section*{Appendix}
+\addcontentsline{toc}{section}{Appendix}
+% ============================================================
+ 
+% ============================================================
+\appendix
+\section{Quaternion Algebra}
+\label{app:quaternion}
+% ============================================================
+ 
+본 부록에서는 쿼터니언의 기본 대수 연산과 성질을 정리한다.
+4장 및 5장의 수식 유도에 필요한 기초 내용을 포함한다.
+ 
+% ------------------------------------------------------------
+\subsection*{A.1 기본 정의}
+ 
+쿼터니언 $\mathbf{q} \in \mathbb{H}$는 실수 스칼라 성분 $q_0$와
+허수 벡터 성분 $\mathbf{q}_v = [q_1, q_2, q_3]^\top$으로 구성된다:
+ 
+\begin{equation}
+    \mathbf{q} = q_0 + q_1\mathbf{i} + q_2\mathbf{j} + q_3\mathbf{k} =
+    \begin{bmatrix} q_0 \\ q_1 \\ q_2 \\ q_3 \end{bmatrix}
+    \tag{A.1}
+\end{equation}
+ 
+허수 단위 사이의 곱셈 규칙:
+ 
+\begin{equation}
+    \mathbf{i}^2 = \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{ijk} = -1
+    \tag{A.2}
+\end{equation}
+ 
+\begin{equation}
+    \mathbf{ij} = \mathbf{k},\quad \mathbf{jk} = \mathbf{i},\quad \mathbf{ki} = \mathbf{j},\quad
+    \mathbf{ji} = -\mathbf{k},\quad \mathbf{kj} = -\mathbf{i},\quad \mathbf{ik} = -\mathbf{j}
+    \tag{A.3}
+\end{equation}
+ 
+% ------------------------------------------------------------
+\subsection*{A.2 기본 연산}
+ 
+\paragraph{노름 (Norm)}
+ 
+\begin{equation}
+    \|\mathbf{q}\| = \sqrt{q_0^2 + q_1^2 + q_2^2 + q_3^2}
+    \tag{A.4}
+\end{equation}
+ 
+단위 쿼터니언: $\|\mathbf{q}\| = 1$
+ 
+\paragraph{켤레 (Conjugate)}
+ 
+\begin{equation}
+    \mathbf{q}^* = \begin{bmatrix} q_0 \\ -\mathbf{q}_v \end{bmatrix} =
+    \begin{bmatrix} q_0 \\ -q_1 \\ -q_2 \\ -q_3 \end{bmatrix}
+    \tag{A.5}
+\end{equation}
+ 
+단위 쿼터니언의 역원: $\mathbf{q}^{-1} = \mathbf{q}^*$
+ 
+\paragraph{쿼터니언 곱 (Hamilton Product)}
+ 
+두 쿼터니언 $\mathbf{p} = [p_0, \mathbf{p}_v]^\top$,
+$\mathbf{q} = [q_0, \mathbf{q}_v]^\top$의 곱:
+ 
+\begin{equation}
+    \mathbf{p} \otimes \mathbf{q} =
+    \begin{bmatrix}
+        p_0 q_0 - \mathbf{p}_v^\top \mathbf{q}_v \\
+        p_0 \mathbf{q}_v + q_0 \mathbf{p}_v + \mathbf{p}_v \times \mathbf{q}_v
+    \end{bmatrix}
+    \tag{A.6}
+\end{equation}
+ 
+쿼터니언 곱은 일반적으로 교환 법칙이 성립하지 않는다:
+$\mathbf{p} \otimes \mathbf{q} \neq \mathbf{q} \otimes \mathbf{p}$
+ 
+\paragraph{행렬 표현}
+ 
+좌측 곱 행렬 $\boldsymbol{\Xi}(\mathbf{p}) \in \mathbb{R}^{4\times 4}$:
+ 
+\begin{equation}
+    \mathbf{p} \otimes \mathbf{q} = \boldsymbol{\Xi}(\mathbf{p})\mathbf{q} =
+    \begin{bmatrix}
+        p_0 & -p_1 & -p_2 & -p_3 \\
+        p_1 &  p_0 & -p_3 &  p_2 \\
+        p_2 &  p_3 &  p_0 & -p_1 \\
+        p_3 & -p_2 &  p_1 &  p_0
+    \end{bmatrix}
+    \begin{bmatrix} q_0 \\ q_1 \\ q_2 \\ q_3 \end{bmatrix}
+    \tag{A.7}
+\end{equation}
+ 
+우측 곱 행렬 $\boldsymbol{\Psi}(\mathbf{q}) \in \mathbb{R}^{4\times 4}$:
+ 
+\begin{equation}
+    \mathbf{p} \otimes \mathbf{q} = \boldsymbol{\Psi}(\mathbf{q})\mathbf{p} =
+    \begin{bmatrix}
+        q_0 & -q_1 & -q_2 & -q_3 \\
+        q_1 &  q_0 &  q_3 & -q_2 \\
+        q_2 & -q_3 &  q_0 &  q_1 \\
+        q_3 &  q_2 & -q_1 &  q_0
+    \end{bmatrix}
+    \begin{bmatrix} p_0 \\ p_1 \\ p_2 \\ p_3 \end{bmatrix}
+    \tag{A.8}
+\end{equation}
+ 
+% ------------------------------------------------------------
+\subsection*{A.3 회전 표현}
+ 
+회전 축 $\hat{\mathbf{u}} \in \mathbb{R}^3$ ($\|\hat{\mathbf{u}}\| = 1$)에 대한
+각도 $\alpha$ 회전의 단위 쿼터니언:
+ 
+\begin{equation}
+    \mathbf{q} = \begin{bmatrix} \cos(\alpha/2) \\ \hat{\mathbf{u}}\sin(\alpha/2) \end{bmatrix}
+    \tag{A.9}
+\end{equation}
+ 
+벡터 $\mathbf{v} \in \mathbb{R}^3$의 쿼터니언 회전:
+ 
+\begin{equation}
+    \begin{bmatrix} 0 \\ \mathbf{v}' \end{bmatrix} =
+    \mathbf{q} \otimes \begin{bmatrix} 0 \\ \mathbf{v} \end{bmatrix} \otimes \mathbf{q}^*
+    \tag{A.10}
+\end{equation}
+ 
+쿼터니언-DCM 변환:
+ 
+\begin{equation}
+    \mathbf{R}(\mathbf{q}) =
+    \begin{bmatrix}
+        1-2(q_2^2+q_3^2) & 2(q_1q_2+q_0q_3) & 2(q_1q_3-q_0q_2) \\
+        2(q_1q_2-q_0q_3) & 1-2(q_1^2+q_3^2) & 2(q_2q_3+q_0q_1) \\
+        2(q_1q_3+q_0q_2) & 2(q_2q_3-q_0q_1) & 1-2(q_1^2+q_2^2)
+    \end{bmatrix}
+    \tag{A.11}
+\end{equation}
+ 
+% ------------------------------------------------------------
+\subsection*{A.4 쿼터니언 보간 (SLERP)}
+ 
+두 단위 쿼터니언 $\mathbf{q}_0$, $\mathbf{q}_1$ 사이의
+구면 선형 보간(Spherical Linear Interpolation, SLERP):
+ 
+\begin{equation}
+    \text{Slerp}(\mathbf{q}_0, \mathbf{q}_1; t) =
+    \mathbf{q}_0 \left(\mathbf{q}_0^* \otimes \mathbf{q}_1\right)^t, \quad t \in [0, 1]
+    \tag{A.12}
+\end{equation}
+ 
+닫힌 형태:
+ 
+\begin{equation}
+    \text{Slerp}(\mathbf{q}_0, \mathbf{q}_1; t) =
+    \frac{\sin((1-t)\Omega)}{\sin\Omega}\mathbf{q}_0 +
+    \frac{\sin(t\Omega)}{\sin\Omega}\mathbf{q}_1, \quad
+    \cos\Omega = \mathbf{q}_0^\top \mathbf{q}_1
+    \tag{A.13}
+\end{equation}
+ 
+% ============================================================
+\section{EKF Jacobian Derivation}
+\label{app:jacobian}
+% ============================================================
+ 
+본 부록에서는 5장 EKF 설계에 사용된 Jacobian 행렬의
+전체 유도 과정을 기술한다.
+ 
+% ------------------------------------------------------------
+\subsection*{B.1 상태 방정식 Jacobian $\mathbf{F}_c$}
+ 
+상태 벡터 $\mathbf{x} = [\mathbf{q}^\top, \mathbf{b}_g^\top]^\top \in \mathbb{R}^7$에 대한
+연속시간 상태 방정식:
+ 
+\begin{equation}
+    \dot{\mathbf{x}} = \mathbf{f}(\mathbf{x}, \tilde{\boldsymbol{\omega}}) =
+    \begin{bmatrix}
+        \frac{1}{2}\boldsymbol{\Omega}(\tilde{\boldsymbol{\omega}} - \mathbf{b}_g)\mathbf{q} \\
+        \mathbf{0}_3
+    \end{bmatrix}
+    \tag{B.1}
+\end{equation}
+ 
+\paragraph{$\partial \dot{\mathbf{q}} / \partial \mathbf{q}$ 계산}
+ 
+$\dot{\mathbf{q}} = \frac{1}{2}\boldsymbol{\Omega}(\hat{\boldsymbol{\omega}})\mathbf{q}$이므로:
+ 
+\begin{equation}
+    \frac{\partial \dot{\mathbf{q}}}{\partial \mathbf{q}} =
+    \frac{1}{2}\boldsymbol{\Omega}(\hat{\boldsymbol{\omega}}) =
+    \frac{1}{2}\begin{bmatrix}
+         0       & -\hat{\omega}_x & -\hat{\omega}_y & -\hat{\omega}_z \\
+         \hat{\omega}_x &  0        &  \hat{\omega}_z & -\hat{\omega}_y \\
+         \hat{\omega}_y & -\hat{\omega}_z &  0        &  \hat{\omega}_x \\
+         \hat{\omega}_z &  \hat{\omega}_y & -\hat{\omega}_x &  0
+    \end{bmatrix}
+    \in \mathbb{R}^{4\times 4}
+    \tag{B.2}
+\end{equation}
+ 
+\noindent 여기서 $\hat{\boldsymbol{\omega}} = \tilde{\boldsymbol{\omega}} - \hat{\mathbf{b}}_g$이다.
+ 
+\paragraph{$\partial \dot{\mathbf{q}} / \partial \mathbf{b}_g$ 계산}
+ 
+$\dot{\mathbf{q}} = \frac{1}{2}\boldsymbol{\Xi}(\mathbf{q})\begin{bmatrix}0\\\hat{\boldsymbol{\omega}}\end{bmatrix}$이고,
+$\hat{\boldsymbol{\omega}} = \tilde{\boldsymbol{\omega}} - \mathbf{b}_g$이므로:
+ 
+\begin{equation}
+    \frac{\partial \dot{\mathbf{q}}}{\partial \mathbf{b}_g} =
+    -\frac{1}{2}\boldsymbol{\Xi}_{1:3}(\mathbf{q}) \in \mathbb{R}^{4\times 3}
+    \tag{B.3}
+\end{equation}
+ 
+\noindent 여기서 $\boldsymbol{\Xi}_{1:3}(\mathbf{q})$는 $\boldsymbol{\Xi}(\mathbf{q})$의
+우측 3열로 구성된 부분 행렬:
+ 
+\begin{equation}
+    \boldsymbol{\Xi}_{1:3}(\mathbf{q}) =
+    \begin{bmatrix}
+        -q_1 & -q_2 & -q_3 \\
+         q_0 & -q_3 &  q_2 \\
+         q_3 &  q_0 & -q_1 \\
+        -q_2 &  q_1 &  q_0
+    \end{bmatrix}
+    \tag{B.4}
+\end{equation}
+ 
+\paragraph{전체 $\mathbf{F}_c$}
+ 
+\begin{equation}
+    \mathbf{F}_c = \frac{\partial \mathbf{f}}{\partial \mathbf{x}} =
+    \begin{bmatrix}
+        \frac{1}{2}\boldsymbol{\Omega}(\hat{\boldsymbol{\omega}}) &
+        -\frac{1}{2}\boldsymbol{\Xi}_{1:3}(\hat{\mathbf{q}}) \\[6pt]
+        \mathbf{0}_{3\times 4} & \mathbf{0}_{3\times 3}
+    \end{bmatrix}
+    \in \mathbb{R}^{7\times 7}
+    \tag{B.5}
+\end{equation}
+ 
+이산시간 상태 천이 행렬:
+ 
+\begin{equation}
+    \mathbf{F}_k = \mathbf{I}_7 + \mathbf{F}_c\,\Delta t
+    \tag{B.6}
+\end{equation}
+ 
+% ------------------------------------------------------------
+\subsection*{B.2 가속도계 관측 Jacobian $\mathbf{H}_a$}
+ 
+관측 함수 $\mathbf{h}_a(\mathbf{q}) = \mathbf{R}(\mathbf{q})\mathbf{g}^n$,
+$\mathbf{g}^n = [0, 0, g]^\top$을 전개하면:
+ 
+\begin{equation}
+    \mathbf{h}_a(\mathbf{q}) = g\begin{bmatrix}
+        2(q_1 q_3 - q_0 q_2) \\
+        2(q_2 q_3 + q_0 q_1) \\
+        q_0^2 - q_1^2 - q_2^2 + q_3^2
+    \end{bmatrix}
+    \tag{B.7}
+\end{equation}
+ 
+각 성분을 $q_0, q_1, q_2, q_3$에 대해 편미분하면:
+ 
+\begin{align}
+    \frac{\partial h_{a,1}}{\partial \mathbf{q}} &= 2g\begin{bmatrix} -q_2 & q_3 & -q_0 & q_1 \end{bmatrix} \tag{B.8} \\
+    \frac{\partial h_{a,2}}{\partial \mathbf{q}} &= 2g\begin{bmatrix}  q_1 & q_0 &  q_3 & q_2 \end{bmatrix} \tag{B.9} \\
+    \frac{\partial h_{a,3}}{\partial \mathbf{q}} &= 2g\begin{bmatrix}  q_0 & -q_1 & -q_2 & q_3 \end{bmatrix} \tag{B.10}
+\end{align}
+ 
+따라서:
+ 
+\begin{equation}
+    \frac{\partial \mathbf{h}_a}{\partial \mathbf{q}} = 2g
+    \begin{bmatrix}
+        -q_2 &  q_3 & -q_0 &  q_1 \\
+         q_1 &  q_0 &  q_3 &  q_2 \\
+         q_0 & -q_1 & -q_2 &  q_3
+    \end{bmatrix}
+    \in \mathbb{R}^{3\times 4}
+    \tag{B.11}
+\end{equation}
+ 
+바이어스에 대한 편미분은 $\mathbf{0}_{3\times 3}$이므로
+전체 관측 Jacobian:
+ 
+\begin{equation}
+    \mathbf{H}_{a} = \left[\frac{\partial \mathbf{h}_a}{\partial \mathbf{q}} \;\Bigg|\; \mathbf{0}_{3\times 3}\right]
+    \in \mathbb{R}^{3\times 7}
+    \tag{B.12}
+\end{equation}
+ 
+% ------------------------------------------------------------
+\subsection*{B.3 지자기계 관측 Jacobian $\mathbf{H}_m$}
+ 
+관측 함수 $\mathbf{h}_m(\mathbf{q}) = \mathbf{R}(\mathbf{q})\mathbf{m}^n$,
+$\mathbf{m}^n = [m_N, 0, m_D]^\top$을 전개하면:
+ 
+\begin{equation}
+    \mathbf{h}_m(\mathbf{q}) =
+    \begin{bmatrix}
+        m_N(1 - 2q_2^2 - 2q_3^2) + 2m_D(q_1 q_3 - q_0 q_2) \\
+        2m_N(q_1 q_2 + q_0 q_3) + 2m_D(q_2 q_3 - q_0 q_1) \\
+        2m_N(q_1 q_3 - q_0 q_2) + m_D(1 - 2q_1^2 - 2q_2^2)
+    \end{bmatrix}
+    \tag{B.13}
+\end{equation}
+ 
+각 성분을 $q_0, q_1, q_2, q_3$에 대해 편미분하면:
+ 
+\begin{equation}
+    \frac{\partial \mathbf{h}_m}{\partial \mathbf{q}} = 2
+    \begin{bmatrix}
+        -m_D q_2 & m_D q_3 & -2m_N q_2 - m_D q_0 & -2m_N q_3 + m_D q_1 \\
+         m_N q_3 - m_D q_1 & m_N q_2 + m_D q_0 & m_N q_1 - m_D q_3 & m_N q_0 + m_D q_2 \\
+        -m_N q_2 & m_N q_3 - 2m_D q_1 & -m_N q_0 - 2m_D q_2 & m_N q_1
+    \end{bmatrix}
+    \tag{B.14}
+\end{equation}
+ 
+전체 관측 Jacobian:
+ 
+\begin{equation}
+    \mathbf{H}_{m} = \left[\frac{\partial \mathbf{h}_m}{\partial \mathbf{q}} \;\Bigg|\; \mathbf{0}_{3\times 3}\right]
+    \in \mathbb{R}^{3\times 7}
+    \tag{B.15}
+\end{equation}
+ 
+% ============================================================
+\section{Code Structure}
+\label{app:code}
+% ============================================================
+ 
+본 부록에서는 Python으로 구현한 시뮬레이션 및 AHRS 알고리즘의
+코드 구조를 설명한다.
+ 
+% ------------------------------------------------------------
+\subsection*{C.1 전체 디렉토리 구조}
+ 
+\begin{verbatim}
+prj_imu_fusion/
+├── sim/
+│   ├── imu_simulator.py      # IMU 데이터 합성
+│   ├── trajectory.py         # 참 자세 궤적 생성
+│   └── noise_model.py        # 잡음 모델 (ARW, RRW)
+├── filters/
+│   ├── complementary.py      # Complementary Filter
+│   ├── mahony.py             # Mahony Filter
+│   ├── madgwick.py           # Madgwick Filter
+│   └── ekf.py                # Extended Kalman Filter
+├── calibration/
+│   ├── accel_calib.py        # 가속도계 캘리브레이션
+│   ├── gyro_calib.py         # 자이로 Allan Variance
+│   └── mag_calib.py          # Hard/Soft Iron 보정
+├── analysis/
+│   ├── allan_variance.py     # AVAR 계산 및 시각화
+│   └── psd.py                # PSD 분석
+├── hardware/
+│   └── mpu9250_reader.py     # Arduino 시리얼 통신
+└── main.py                   # 메인 실행 스크립트
+\end{verbatim}
+ 
+% ------------------------------------------------------------
+\subsection*{C.2 핵심 모듈 설명}
+ 
+\paragraph{imu\_simulator.py}
+ 
+\begin{verbatim}
+class IMUSimulator:
+    def __init__(self, sigma_w, sigma_rw, sigma_a, sigma_m, fs):
+        # 잡음 파라미터 초기화
+    
+    def generate(self, q_true, omega_true):
+        # 자이로, 가속도계, 지자기계 측정값 합성
+        # 반환: gyro_meas, accel_meas, mag_meas
+\end{verbatim}
+ 
+\paragraph{ekf.py}
+ 
+\begin{verbatim}
+class EKF:
+    def __init__(self, Q, Ra, Rm, P0):
+        # 공분산 초기화
+        self.x = np.array([1,0,0,0, 0,0,0])  # 상태 벡터
+        self.P = P0
+    
+    def predict(self, gyro, dt):
+        # 상태 전파 및 공분산 예측
+        # F = I + Fc * dt
+    
+    def update_accel(self, accel):
+        # 가속도계 Update (동적 가속도 조건 포함)
+        # H_a, K_a, 상태/공분산 갱신
+    
+    def update_mag(self, mag):
+        # 지자기계 Update
+        # H_m, K_m, 상태/공분산 갱신
+    
+    def normalize(self):
+        # 쿼터니언 정규화
+    
+    def get_euler(self):
+        # 쿼터니언 → 오일러각 변환
+\end{verbatim}
+ 
+\paragraph{allan\_variance.py}
+ 
+\begin{verbatim}
+def compute_avar(data, fs):
+    # 입력: 정지 상태 자이로 시계열, 샘플링 주파수
+    # 출력: tau 배열, AVAR 배열
+    # 방법: overlapping AVAR
+ 
+def extract_noise_params(tau, avar):
+    # log-log 기울기 분석으로 ARW, BI, RRW 계수 추출
+    # 반환: N (ARW), B (BI), K (RRW)
+\end{verbatim}
+ 
+% ------------------------------------------------------------
+\subsection*{C.3 실행 방법}
+ 
+\paragraph{시뮬레이션 실행}
+ 
+\begin{verbatim}
+# 의존성 설치
+pip install numpy scipy matplotlib
+ 
+# 시뮬레이션 실행
+python main.py --mode sim --filter ekf --duration 60
+ 
+# 필터 비교
+python main.py --mode sim --filter all --plot
+\end{verbatim}
+ 
+\paragraph{실제 데이터 분석}
+ 
+\begin{verbatim}
+# Arduino 시리얼 데이터 수집 (baudrate: 115200)
+python hardware/mpu9250_reader.py --port COM3 --duration 7200
+ 
+# Allan Variance 분석
+python analysis/allan_variance.py --input data/gyro_static.csv
+ 
+# 캘리브레이션 실행
+python calibration/accel_calib.py --input data/accel_6pos.csv
+python calibration/mag_calib.py   --input data/mag_rotation.csv
+\end{verbatim}
+ 
+% ============================================================
+\section{MPU-9250 Hardware Overview}
+\label{app:hardware}
+% ============================================================
+ 
+본 부록에서는 MPU-9250 IMU의 하드웨어 사양과
+통신 인터페이스를 정리한다.
+ 
+% ------------------------------------------------------------
+\subsection*{D.1 센서 사양}
+ 
+\begin{table}[H]
+    \centering
+    \caption{MPU-9250 센서 사양}
+    \label{tab:mpu9250_spec}
+    \begin{tabular}{llll}
+        \toprule
+        항목 & 가속도계 & 자이로스코프 & 지자기계 (AK8963) \\
+        \midrule
+        측정 범위 & $\pm$2/4/8/16 g & $\pm$250/500/1000/2000 $^\circ$/s & $\pm$4800 $\mu$T \\
+        ADC 해상도 & 16 bit & 16 bit & 14 / 16 bit \\
+        감도 (기본) & 16384 LSB/g & 131 LSB/($^\circ$/s) & 0.6 $\mu$T/LSB \\
+        출력 데이터 레이트 & 최대 4 kHz & 최대 8 kHz & 최대 100 Hz \\
+        동작 전압 & \multicolumn{3}{c}{1.71 -- 3.45 V} \\
+        소비 전류 & 450 $\mu$A & 3.2 mA & 280 $\mu$A \\
+        온도 범위 & \multicolumn{3}{c}{$-40^\circ$C $\sim$ $+85^\circ$C} \\
+        패키지 & \multicolumn{3}{c}{QFN 3$\times$3$\times$1 mm} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+ 
+% ------------------------------------------------------------
+\subsection*{D.2 I$^2$C 인터페이스}
+ 
+MPU-9250은 호스트와 I$^2$C 프로토콜로 통신하며,
+AD0 핀 레벨에 따라 슬레이브 주소가 결정된다:
+ 
+\begin{equation}
+    \text{AD0} = \text{LOW} \Rightarrow 0\text{x}68, \qquad
+    \text{AD0} = \text{HIGH} \Rightarrow 0\text{x}69
+    \tag{D.1}
+\end{equation}
+ 
+주요 레지스터:
+ 
+\begin{table}[H]
+    \centering
+    \caption{MPU-9250 주요 레지스터}
+    \label{tab:mpu9250_reg}
+    \begin{tabular}{lll}
+        \toprule
+        레지스터 주소 & 이름 & 설명 \\
+        \midrule
+        0x3B -- 0x40 & ACCEL\_XOUT -- ACCEL\_ZOUT & 가속도계 원시 데이터 (16비트 $\times$ 3축) \\
+        0x41 -- 0x42 & TEMP\_OUT & 온도 데이터 \\
+        0x43 -- 0x48 & GYRO\_XOUT -- GYRO\_ZOUT & 자이로 원시 데이터 (16비트 $\times$ 3축) \\
+        0x6B & PWR\_MGMT\_1 & 전원 관리 및 클럭 설정 \\
+        0x1B & GYRO\_CONFIG & 자이로 측정 범위 설정 \\
+        0x1C & ACCEL\_CONFIG & 가속도계 측정 범위 설정 \\
+        0x37 & INT\_PIN\_CFG & Pass-Through 모드 활성화 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+ 
+원시 데이터 변환:
+ 
+\begin{equation}
+    \text{raw} = (\text{HIGH\_BYTE} \ll 8) \mid \text{LOW\_BYTE}
+    \tag{D.2}
+\end{equation}
+ 
+\begin{equation}
+    \text{physical value} = \frac{\text{raw}}{\text{sensitivity}}
+    \tag{D.3}
+\end{equation}
+ 
+% ------------------------------------------------------------
+\subsection*{D.3 AK8963 지자기계 접근}
+ 
+AK8963은 MPU-9250의 보조 I$^2$C 버스에 연결되어 있으며,
+Pass-Through 모드를 활성화하면 호스트에서 직접 접근할 수 있다.
+ 
+\begin{enumerate}
+    \item MPU-9250 레지스터 0x6A (USER\_CTRL)의 I2C\_MST\_EN 비트를 0으로 설정
+    \item MPU-9250 레지스터 0x37 (INT\_PIN\_CFG)의 BYPASS\_EN 비트를 1로 설정
+    \item AK8963 슬레이브 주소 0x0C로 직접 접근
+    \item AK8963 레지스터 0x0A (CNTL1)에 0x16 기록: 16비트 연속 측정 모드 2
+\end{enumerate}
+ 
+AK8963 주요 레지스터:
+ 
+\begin{table}[H]
+    \centering
+    \caption{AK8963 주요 레지스터}
+    \label{tab:ak8963_reg}
+    \begin{tabular}{lll}
+        \toprule
+        레지스터 주소 & 이름 & 설명 \\
+        \midrule
+        0x02 & ST1 & 데이터 준비 상태 (DRDY 비트) \\
+        0x03 -- 0x08 & HXL -- HZH & 자기장 원시 데이터 (16비트 $\times$ 3축) \\
+        0x09 & ST2 & 데이터 오버런 및 자기 센서 오버플로 \\
+        0x0A & CNTL1 & 측정 모드 및 출력 비트 설정 \\
+        0x10 -- 0x12 & ASAX/Y/Z & 감도 보정값 (ROM) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+ 
+감도 보정값(Sensitivity Adjustment Value) 적용:
+ 
+\begin{equation}
+    H_{\text{adj},i} = H_i \times \frac{(ASA_i - 128) \times 0.5}{128} + H_i, \quad i \in \{x, y, z\}
+    \tag{D.4}
+\end{equation}
+ 
+% ------------------------------------------------------------
+\subsection*{D.4 좌표계 정렬}
+ 
+MPU-9250 가속도계/자이로스코프와 AK8963 지자기계는
+서로 다른 좌표계를 사용하므로 데이터 퓨전 전 축 변환이 필요하다.
+ 
+\begin{table}[H]
+    \centering
+    \caption{MPU-9250 좌표계 정렬}
+    \label{tab:axis_align}
+    \begin{tabular}{lccc}
+        \toprule
+        센서 & X축 & Y축 & Z축 \\
+        \midrule
+        가속도계 / 자이로스코프 & 전방 & 우측 & 하방 \\
+        AK8963 지자기계 & 우측 & 전방 & 하방 \\
+        \midrule
+        정렬 후 (Body Frame) & 전방 & 우측 & 하방 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+ 
+AK8963 출력의 Body Frame 변환:
+ 
+\begin{equation}
+    \begin{bmatrix} m_x^b \\ m_y^b \\ m_z^b \end{bmatrix} =
+    \begin{bmatrix} m_y^{\text{AK}} \\ m_x^{\text{AK}} \\ -m_z^{\text{AK}} \end{bmatrix}
+    \tag{D.5}
+\end{equation}
