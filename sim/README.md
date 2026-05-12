@@ -8,7 +8,7 @@ Windows-friendly AHRS simulation scaffold for comparing:
 ## Quick start
 
 ```powershell
-cd C:\Users\cbj\Desktop\prj_ahrs
+cd root
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
