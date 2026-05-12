@@ -39,9 +39,3 @@ build/
 # =========================
 .DS_Store
 Thumbs.db
-
-# =========================
-# Generated exports
-# =========================
-export/fig/
-export/log/

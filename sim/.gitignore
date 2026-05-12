@@ -17,13 +17,6 @@ __pycache__/
 .eggs/
 
 # =========================
-# Simulation outputs
-# =========================
-data/*.csv
-data/*.png
-data/*.log
-
-# =========================
 # Logs / environment files
 # =========================
 *.log
