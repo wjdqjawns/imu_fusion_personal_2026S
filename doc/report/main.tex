@@ -8,20 +8,27 @@
 \usepackage{packages/formatting}
 
 \begin{document}
-    \input{chapter_00.tex}
+    \input{00_cover.tex}
     \newpage
+    \emptypage
 
-    % Table of Contents
+    % Revision History
+    \input{01_revision.tex}
+    \newpage
+    \emptypage
+
+    % Abstract
+    \input{02_abstract.tex}
+    \newpage
+    \emptypage
+
+    % Table of Contents and List of Figures/Tables
     \tableofcontents
     \newpage
-    % \listoffigures
     % \newpage
     % \listoftables
     % \newpage
-
-    % Abstract
-    \input{abstract.tex}
-    \newpage
+    \emptypage
     
     % Chapters
     \input{chapter_01.tex}
@@ -46,6 +53,7 @@
     % \newpage
     % \input{chapter_11.tex}
     % \newpage
+    \emptypage
 
     % Appendix
     \addcontentsline{toc}{section}{Appendix}

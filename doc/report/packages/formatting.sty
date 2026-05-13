@@ -76,6 +76,17 @@
   {\normalfont\normalsize\bfseries}
   {\thesubsubsection.}{1em}{}
 
+\newcommand{\emptypage}{
+  \clearpage
+  \thispagestyle{empty}
+  \vspace*{\fill}       % 상단 여백을 자동으로 채워 텍스트를 중앙으로 이동
+  \begin{center}
+      This page intentionally left blank. % 또는 "이 페이지는 의도적으로 비워둔 페이지입니다."
+  \end{center}
+  \vspace{\fill}        % 하단 여백을 채움
+  \clearpage
+}
+
 % ---------- Appendix ----------
 \newcommand{\appendixformat}{%
   \setcounter{section}{0}
