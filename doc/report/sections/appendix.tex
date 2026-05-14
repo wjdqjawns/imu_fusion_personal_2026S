@@ -1,113 +1,101 @@
 % ============================================================
 \section*{Appendix}
 \addcontentsline{toc}{section}{Appendix}
-% ============================================================
- 
-% ============================================================
+
 \appendix
+
 \section{Quaternion Algebra}
-\label{app:quaternion}
-% ============================================================
+    \label{app:quaternion}
+
+    본 부록에서는 쿼터니언의 기본 대수 연산과 성질을 정리한다. 4장 및 5장의 수식 유도에 필요한 기초 내용을 포함한다.\\
+
+    \subsection*{A.1 기본 정의}
+        쿼터니언 $\mathbf{q} \in \mathbb{H}$는 실수 스칼라 성분 $q_0$와 허수 벡터 성분 $\mathbf{q}_v = [q_1, q_2, q_3]^\top$으로 구성된다:
  
-본 부록에서는 쿼터니언의 기본 대수 연산과 성질을 정리한다.
-4장 및 5장의 수식 유도에 필요한 기초 내용을 포함한다.
+        \begin{equation}
+            \mathbf{q} = q_0 + q_1\mathbf{i} + q_2\mathbf{j} + q_3\mathbf{k} =
+            \begin{bmatrix} q_0 \\ q_1 \\ q_2 \\ q_3 \end{bmatrix}
+            \tag{A.1}
+        \end{equation}
+        
+        허수 단위 사이의 곱셈 규칙:
+        
+        \begin{equation}
+            \mathbf{i}^2 = \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{ijk} = -1
+            \tag{A.2}
+        \end{equation}
+        
+        \begin{equation}
+            \mathbf{ij} = \mathbf{k},\quad \mathbf{jk} = \mathbf{i},\quad \mathbf{ki} = \mathbf{j},\quad
+            \mathbf{ji} = -\mathbf{k},\quad \mathbf{kj} = -\mathbf{i},\quad \mathbf{ik} = -\mathbf{j}
+            \tag{A.3}
+        \end{equation}
  
-% ------------------------------------------------------------
-\subsection*{A.1 기본 정의}
+    \subsection*{A.2 기본 연산}
+        \paragraph{노름 (Norm)}
+
+            \begin{equation}
+                \|\mathbf{q}\| = \sqrt{q_0^2 + q_1^2 + q_2^2 + q_3^2}
+                \tag{A.4}
+            \end{equation}
+            
+            단위 쿼터니언: $\|\mathbf{q}\| = 1$
  
-쿼터니언 $\mathbf{q} \in \mathbb{H}$는 실수 스칼라 성분 $q_0$와
-허수 벡터 성분 $\mathbf{q}_v = [q_1, q_2, q_3]^\top$으로 구성된다:
+        \paragraph{켤레 (Conjugate)}
+
+            \begin{equation}
+                \mathbf{q}^* = \begin{bmatrix} q_0 \\ -\mathbf{q}_v \end{bmatrix} =
+                \begin{bmatrix} q_0 \\ -q_1 \\ -q_2 \\ -q_3 \end{bmatrix}
+                \tag{A.5}
+            \end{equation}
+            
+            단위 쿼터니언의 역원: $\mathbf{q}^{-1} = \mathbf{q}^*$
+
+        \paragraph{쿼터니언 곱 (Hamilton Product)}
+            두 쿼터니언 $\mathbf{p} = [p_0, \mathbf{p}_v]^\top$, $\mathbf{q} = [q_0, \mathbf{q}_v]^\top$의 곱:
+
+            \begin{equation}
+                \mathbf{p} \otimes \mathbf{q} =
+                \begin{bmatrix}
+                    p_0 q_0 - \mathbf{p}_v^\top \mathbf{q}_v \\
+                    p_0 \mathbf{q}_v + q_0 \mathbf{p}_v + \mathbf{p}_v \times \mathbf{q}_v
+                \end{bmatrix}
+                \tag{A.6}
+            \end{equation}
+            
+            쿼터니언 곱은 일반적으로 교환 법칙이 성립하지 않는다:
+            $\mathbf{p} \otimes \mathbf{q} \neq \mathbf{q} \otimes \mathbf{p}$
+
+        \paragraph{행렬 표현}
+            좌측 곱 행렬 $\boldsymbol{\Xi}(\mathbf{p}) \in \mathbb{R}^{4\times 4}$:
+
+            \begin{equation}
+                \mathbf{p} \otimes \mathbf{q} = \boldsymbol{\Xi}(\mathbf{p})\mathbf{q} =
+                \begin{bmatrix}
+                    p_0 & -p_1 & -p_2 & -p_3 \\
+                    p_1 &  p_0 & -p_3 &  p_2 \\
+                    p_2 &  p_3 &  p_0 & -p_1 \\
+                    p_3 & -p_2 &  p_1 &  p_0
+                \end{bmatrix}
+                \begin{bmatrix} q_0 \\ q_1 \\ q_2 \\ q_3 \end{bmatrix}
+                \tag{A.7}
+            \end{equation}
+            
+            우측 곱 행렬 $\boldsymbol{\Psi}(\mathbf{q}) \in \mathbb{R}^{4\times 4}$:
+            
+            \begin{equation}
+                \mathbf{p} \otimes \mathbf{q} = \boldsymbol{\Psi}(\mathbf{q})\mathbf{p} =
+                \begin{bmatrix}
+                    q_0 & -q_1 & -q_2 & -q_3 \\
+                    q_1 &  q_0 &  q_3 & -q_2 \\
+                    q_2 & -q_3 &  q_0 &  q_1 \\
+                    q_3 &  q_2 & -q_1 &  q_0
+                \end{bmatrix}
+                \begin{bmatrix} p_0 \\ p_1 \\ p_2 \\ p_3 \end{bmatrix}
+                \tag{A.8}
+            \end{equation}
  
-\begin{equation}
-    \mathbf{q} = q_0 + q_1\mathbf{i} + q_2\mathbf{j} + q_3\mathbf{k} =
-    \begin{bmatrix} q_0 \\ q_1 \\ q_2 \\ q_3 \end{bmatrix}
-    \tag{A.1}
-\end{equation}
- 
-허수 단위 사이의 곱셈 규칙:
- 
-\begin{equation}
-    \mathbf{i}^2 = \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{ijk} = -1
-    \tag{A.2}
-\end{equation}
- 
-\begin{equation}
-    \mathbf{ij} = \mathbf{k},\quad \mathbf{jk} = \mathbf{i},\quad \mathbf{ki} = \mathbf{j},\quad
-    \mathbf{ji} = -\mathbf{k},\quad \mathbf{kj} = -\mathbf{i},\quad \mathbf{ik} = -\mathbf{j}
-    \tag{A.3}
-\end{equation}
- 
-% ------------------------------------------------------------
-\subsection*{A.2 기본 연산}
- 
-\paragraph{노름 (Norm)}
- 
-\begin{equation}
-    \|\mathbf{q}\| = \sqrt{q_0^2 + q_1^2 + q_2^2 + q_3^2}
-    \tag{A.4}
-\end{equation}
- 
-단위 쿼터니언: $\|\mathbf{q}\| = 1$
- 
-\paragraph{켤레 (Conjugate)}
- 
-\begin{equation}
-    \mathbf{q}^* = \begin{bmatrix} q_0 \\ -\mathbf{q}_v \end{bmatrix} =
-    \begin{bmatrix} q_0 \\ -q_1 \\ -q_2 \\ -q_3 \end{bmatrix}
-    \tag{A.5}
-\end{equation}
- 
-단위 쿼터니언의 역원: $\mathbf{q}^{-1} = \mathbf{q}^*$
- 
-\paragraph{쿼터니언 곱 (Hamilton Product)}
- 
-두 쿼터니언 $\mathbf{p} = [p_0, \mathbf{p}_v]^\top$,
-$\mathbf{q} = [q_0, \mathbf{q}_v]^\top$의 곱:
- 
-\begin{equation}
-    \mathbf{p} \otimes \mathbf{q} =
-    \begin{bmatrix}
-        p_0 q_0 - \mathbf{p}_v^\top \mathbf{q}_v \\
-        p_0 \mathbf{q}_v + q_0 \mathbf{p}_v + \mathbf{p}_v \times \mathbf{q}_v
-    \end{bmatrix}
-    \tag{A.6}
-\end{equation}
- 
-쿼터니언 곱은 일반적으로 교환 법칙이 성립하지 않는다:
-$\mathbf{p} \otimes \mathbf{q} \neq \mathbf{q} \otimes \mathbf{p}$
- 
-\paragraph{행렬 표현}
- 
-좌측 곱 행렬 $\boldsymbol{\Xi}(\mathbf{p}) \in \mathbb{R}^{4\times 4}$:
- 
-\begin{equation}
-    \mathbf{p} \otimes \mathbf{q} = \boldsymbol{\Xi}(\mathbf{p})\mathbf{q} =
-    \begin{bmatrix}
-        p_0 & -p_1 & -p_2 & -p_3 \\
-        p_1 &  p_0 & -p_3 &  p_2 \\
-        p_2 &  p_3 &  p_0 & -p_1 \\
-        p_3 & -p_2 &  p_1 &  p_0
-    \end{bmatrix}
-    \begin{bmatrix} q_0 \\ q_1 \\ q_2 \\ q_3 \end{bmatrix}
-    \tag{A.7}
-\end{equation}
- 
-우측 곱 행렬 $\boldsymbol{\Psi}(\mathbf{q}) \in \mathbb{R}^{4\times 4}$:
- 
-\begin{equation}
-    \mathbf{p} \otimes \mathbf{q} = \boldsymbol{\Psi}(\mathbf{q})\mathbf{p} =
-    \begin{bmatrix}
-        q_0 & -q_1 & -q_2 & -q_3 \\
-        q_1 &  q_0 &  q_3 & -q_2 \\
-        q_2 & -q_3 &  q_0 &  q_1 \\
-        q_3 &  q_2 & -q_1 &  q_0
-    \end{bmatrix}
-    \begin{bmatrix} p_0 \\ p_1 \\ p_2 \\ p_3 \end{bmatrix}
-    \tag{A.8}
-\end{equation}
- 
-% ------------------------------------------------------------
-\subsection*{A.3 회전 표현}
+    \subsection*{A.3 회전 표현}
  
 회전 축 $\hat{\mathbf{u}} \in \mathbb{R}^3$ ($\|\hat{\mathbf{u}}\| = 1$)에 대한
 각도 $\alpha$ 회전의 단위 쿼터니언:
