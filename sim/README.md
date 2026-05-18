@@ -8,10 +8,16 @@ Windows-friendly AHRS simulation scaffold for comparing:
 ## Quick start
 
 ```powershell
-cd root
+cd root\sim
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
+
+# run simulation
+$env:PYTHONPATH = "src"
+py -m ahrs.main --config config/config.yaml
+
+# offline analysis
 python scripts\run_compare.py
 python scripts\plot_results.py
 ```
