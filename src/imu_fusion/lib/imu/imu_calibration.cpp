@@ -23,14 +23,14 @@ ImuBias calibrate(ImuSensor& imu, int N, int delayMs) {
     return b;
 }
 
-ImuData applyBias(const ImuData& raw, const ImuBias& b) {
-    ImuData cal = raw;
+sImuMeasurement applyBias(const sImuMeasurement& raw, const sImuNoise& b) {
+    sImuMeasurement cal = raw;
     cal.ax -= b.ax; cal.ay -= b.ay; cal.az -= b.az;
     cal.gx -= b.gx; cal.gy -= b.gy; cal.gz -= b.gz;
     return cal;
 }
 
-void printBias(const ImuBias& b) {
+void printBias(const sImuNoise& b) {
     Serial.println(F("===== Calibration Bias ====="));
     Serial.print(F("ax_bias = ")); Serial.println(b.ax, 6);
     Serial.print(F("ay_bias = ")); Serial.println(b.ay, 6);

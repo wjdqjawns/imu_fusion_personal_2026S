@@ -1,13 +1,16 @@
 """
-accelerometer.py — 가속도계 센서 모델
+File Name: ./src/ahrs/core/model/accelerometer.py
+Author: Beomjun Chung
+Updated: 2026-05-18
 
-운동학 모델 (Kinematic Model):
-    AHRS에서 가속도계의 역할은 중력 방향 기준벡터 제공.
-    정지 혹은 등속 운동 시: a_body = R^T · g_world (중력만)
-    가속 기동 시:          a_body = R^T · g_world + a_linear (외란)
+Description:
+    운동학 모델 (Kinematic Model):
+        AHRS에서 가속도계의 역할은 중력 방향 기준벡터 제공.
+        정지 혹은 등속 운동 시: a_body = R^T · g_world (중력만)
+        가속 기동 시:          a_body = R^T · g_world + a_linear (외란)
 
     센서가 출력하는 측정값:
-    a_meas = S · a_true + b_turnon + b_bi(t) + n_vrw(t) + f_vre(a_true)
+        a_meas = S · a_true + b_turnon + b_bi(t) + n_vrw(t) + f_vre(a_true)
 
     각 항의 의미:
         S           : 스케일 팩터 행렬
@@ -26,27 +29,16 @@ AHRS 맥락에서 핵심 이슈:
 단위:
     입력/출력 모두 [m/s²]
 """
-#*************************************************************************/
-# File Name: ./src/core/model/accelerometer.py
-# Author: Beomjun Chung
-# Updated: 2026-05-17
-#
-# Description:
-#   IMU 센서 모델. trajectory에서 받은 진짜 상태값을 세 센서 모델에 넣어
-#   노이즈가 섞인 측정값을 만들어냄. runner.py가 매 스텝마다 호출하는 핵심 인터페이스.
-#*************************************************************************/
 
 from __future__ import annotations
 
 import numpy as np
 
-from ..noise.white import VRWNoise
-from ..noise.colored import GaussMarkovProcess
-from ..noise.profile import AccelNoiseProfile
+from ahrs.core.noise.white import VRWNoise
+from ahrs.core.noise.colored import GaussMarkovProcess
+from ahrs.core.noise.profile import AccelNoiseProfile
 
 class Accelerometer:
-    """가속도계 물리 센서 모델."""
-
     def __init__(self, profile: AccelNoiseProfile, seed: int | None = None):
         self.profile = profile
 

@@ -20,6 +20,7 @@ typedef struct {
 typedef struct {
     EkfAxis phi;    // roll  axis driven by gx
     EkfAxis theta;  // pitch axis driven by gy
+    EkfAxis psi;    // yaw   axis driven by gz
 } EkfState;
 
 void ekfInit(EkfState& s, float phi0, float theta0);

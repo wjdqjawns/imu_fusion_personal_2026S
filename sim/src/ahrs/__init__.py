@@ -1,5 +1,5 @@
 #*************************************************************************/
-# File Name: ./src/__init__.py
+# File Name: ./src/ahrs/__init__.py
 # Author: Beomjun Chung
 # Updated: 2026-05-18
 #

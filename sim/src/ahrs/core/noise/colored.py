@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import numpy as np
 
-
 class GaussMarkovProcess:
     """
     1차 Gauss-Markov 프로세스 — Bias Instability 모델링.
@@ -33,14 +32,14 @@ class GaussMarkovProcess:
     Allan deviation 최솟값(BI)으로 파라미터 초기화.
     σ_drive = σ_bi * √(2 / τ)  (Allan BI 정의에서 유도)
     """
-
+    
     def __init__(self, sigma_bi: float, corr_time_s: float,
                  size: int = 3, seed: int | None = None):
         """
         Args:
-            sigma_bi:      Allan deviation 최솟값 [rad/s or m/s² or uT]
+            sigma_bi:      Allan deviation 최솟값 [rad/sec or m/sec² or uT]
                            프로세스 정상상태 표준편차
-            corr_time_s:   상관시간 τ [s]
+            corr_time_s:   상관시간 τ [sec]
             size:          상태벡터 크기
             seed:          난수 시드
         """
@@ -78,14 +77,14 @@ class BrownNoise:
     Brown noise (적분 랜덤워크) — Rate Random Walk 모델링.
 
     Allan deviation 기울기 +1/2 구간.
-    x[k+1] = x[k] + σ_rrw · √dt · n
+    x[k+1] = x[k] + \sigma_{rrw} \cdot \sqrt{dt} \cdot n
     """
 
     def __init__(self, sigma_rrw: float, size: int = 3,
                  seed: int | None = None):
         """
         Args:
-            sigma_rrw: RRW 계수 [rad/s/√s or m/s²/√s]
+            sigma_rrw: RRW 계수 [rad/sec/√sec or m/sec²/√sec or uT/√sec]
                        Allan deviation +1/2 기울기 구간에서 읽은 값
         """
         self._sigma = float(sigma_rrw)

@@ -44,7 +44,7 @@ env:
 
 # --- ground truth trajectory settings --------------------------
 trajectory:
-  type: circular    # static(for allan variance) | circular | figure8 | spherical(for mag calibration)
+  type: static    # static(for allan variance) | circular | figure8 | spherical(for mag calibration)
 
   static:
     duration: 300.0  # [s] Allan variance 분석 시 300 이상 권장

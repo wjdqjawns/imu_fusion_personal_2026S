@@ -5,7 +5,7 @@
 
   MODE and active filters are selected in include/global_var.h.
 
-  ── Modes ────────────────────────────────────────────────────────────────────
+  ── Run Modes ────────────────────────────────────────────────────────────────────
   MODE_RAW
       Raw sensor CSV for offline noise / Allan variance analysis.
       Header: time_ms,ax,ay,az,gx,gy,gz,mx,my,mz
@@ -29,6 +29,7 @@
 */
 
 #include <Arduino.h>
+
 #include "global_var.h"
 #include "imu_sensor.h"
 #include "imu_calibration.h"
@@ -97,11 +98,11 @@ struct ImuMeasurement {
 // ===============================
 // Full frame with sync
 // ===============================
-struct Frame {
+typedef struct sFrame {
     uint16_t header;   // 0xAA55
     uint16_t seq;
-    ImuMeasurement data;
-};
+    sImuMeasurement data;
+}sFrame;
 
 #pragma pack(pop)
 
@@ -136,7 +137,7 @@ void loop()
     imu.update();
     g_imuRaw = imu.read();
 
-    Frame f;
+    sFrame f;
 
     // header + seq
     f.header = HEADER;

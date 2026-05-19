@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .transforms import Transforms
+from ahrs.core.orientation.transforms import Transforms
 
 class Euler:
 
@@ -96,8 +96,6 @@ class Euler:
         """[roll, pitch, yaw] [deg]. 플롯, 로그 출력에 편리."""
         return np.degrees(self._rpy)
 
-    # ── 각도 정규화 ───────────────────────────────────────────────────────────
-
     def wrap(self) -> "Euler":
         """
         모든 각도를 [-π, π]로 정규화.
@@ -121,16 +119,12 @@ class Euler:
             result[:, i] = np.unwrap(rpy_series[:, i])
         return result
 
-    # ── 짐벌락 감지 ───────────────────────────────────────────────────────────
-
     def is_near_gimbal_lock(self) -> bool:
         """
         pitch가 ±85° 이상이면 짐벌락 근처로 판단.
         이 상태에서 Euler 기반 연산 결과는 신뢰 불가.
         """
         return abs(self._rpy[1]) >= self.GIMBAL_LOCK_THRESHOLD
-
-    # ── 변환 ──────────────────────────────────────────────────────────────────
 
     def to_quaternion(self) -> np.ndarray:
         """→ 쿼터니언 [x,y,z,w] (scalar-last)."""
@@ -139,8 +133,6 @@ class Euler:
     def to_dcm(self) -> np.ndarray:
         """→ DCM 3×3."""
         return Transforms.euler_to_dcm(*self._rpy)
-
-    # ── 오차 계산 ─────────────────────────────────────────────────────────────
 
     def error_from(self, other: "Euler") -> "Euler":
         """
@@ -153,8 +145,6 @@ class Euler:
         # [-π, π] 범위로 정규화
         diff = (diff + np.pi) % (2*np.pi) - np.pi
         return Euler.from_array(diff)
-
-    # ── 출력 ──────────────────────────────────────────────────────────────────
 
     def __repr__(self) -> str:
         r, p, y = self.rpy_deg

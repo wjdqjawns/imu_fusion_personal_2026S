@@ -60,11 +60,11 @@ from ahrs.core.orientation.transforms import Transforms
 
 @dataclass
 class IMUMeasurement:
-    t:       float        # [s]
-    dt:      float        # [s]
+    t:       float        # [sec]
+    dt:      float        # [sec]
 
-    gyro:    np.ndarray   # [rad/s]
-    accel:   np.ndarray   # [m/s²]
+    gyro:    np.ndarray   # [rad/sec]
+    accel:   np.ndarray   # [m/sec²]
     mag:     np.ndarray   # [uT]
 
     is_dynamic:   bool = False
@@ -73,10 +73,10 @@ class IMUMeasurement:
 @dataclass
 class GroundTruth:
     q:       np.ndarray   # attitude quaternion [x,y,z,w] scalar-last
-    omega:   np.ndarray   # angular velocity [rad/s], body frame
+    omega:   np.ndarray   # angular velocity [rad/sec], body frame
     pos:     np.ndarray   # position [m], world frame
-    vel:     np.ndarray   # velocity [m/s], world frame
-    accel_world: np.ndarray  # linear acceleration [m/s²], world frame (gravity excluded)
+    vel:     np.ndarray   # velocity [m/sec], world frame
+    accel_world: np.ndarray  # linear acceleration [m/sec²], world frame (gravity excluded)
     mag_world:   np.ndarray  # magnetic field [uT], world frame
 
 class IMUSensor:
@@ -107,12 +107,12 @@ class IMUSensor:
         # 자기장 body frame 변환
         mag_body = R_T @ self.mag_world
 
-        # ── 각 센서 측정 ──────────────────────────────────────────────────
+        # sensor measurement with noise
         gyro_meas  = self.gyro.measure(truth.omega, specific_force_body, dt)
         accel_meas = self.accel.measure(specific_force_body, dt)
         mag_meas   = self.mag.measure(mag_body, dt)
 
-        # ── 외란 감지 ─────────────────────────────────────────────────────
+        # detect dynamic acceleration (선형 가속도 외란) and magnetic disturbance (자기장 외란)
         is_dyn = self.accel.is_dynamic(accel_meas, np.linalg.norm(self.gravity_world))
         is_mag = self.mag.is_disturbed(mag_meas, self._ref_mag_norm)
 
@@ -139,8 +139,7 @@ class IMUSensor:
         self.accel.reset()
         self.mag.reset()
 
-    # ── 생성 헬퍼 ─────────────────────────────────────────────────────────────
-
+    # helper for from_config
     @classmethod
     def from_config(cls, cfg: dict, seed: int | None = None) -> "IMUSensor":
         """

@@ -1,94 +1,75 @@
 """
-gyroscope.py — 자이로스코프 센서 모델
+File Name: ./src/core/model/gyroscope.py
+Author: Beomjun Chung
+Updated: 2026-05-17
 
-운동학 모델 (Kinematic Model):
-    실제 각속도 ω_true [rad/s] 가 입력으로 들어오면
-    센서가 출력하는 측정값 ω_meas 를 만들어냄.
+Description:
+    Kinematic Model:
+        실제 각속도 ω_true [rad/s] 가 입력으로 들어오면
+        센서가 출력하는 측정값 ω_meas 를 만들어냄.
 
-    ω_meas = S · ω_true + b_turnon + b_bi(t) + b_rrw(t) + n_arw(t) + K_g · a
+        ω_meas = S · ω_true + b_turnon + b_bi(t) + b_rrw(t) + n_arw(t) + K_g · a
 
-    각 항의 의미:
-        S           : 스케일 팩터 행렬 (이상적이면 단위행렬)
-        b_turnon    : 전원 인가 시 고정 바이어스 (매 실행마다 다름)
-        b_bi(t)     : Bias Instability, Gauss-Markov로 천천히 변함
-        b_rrw(t)    : Rate Random Walk, 바이어스가 적분되며 드리프트
-        n_arw(t)    : Angle Random Walk, 매 스텝 독립 white noise
-        K_g · a     : g-sensitivity, 가속도가 자이로 출력을 오염
+        각 항의 의미:
+            S           : 스케일 팩터 행렬 (이상적이면 단위행렬)
+            b_turnon    : 전원 인가 시 고정 바이어스 (매 실행마다 다름)
+            b_bi(t)     : Bias Instability, Gauss-Markov로 천천히 변함
+            b_rrw(t)    : Rate Random Walk, 바이어스가 적분되며 드리프트
+            n_arw(t)    : Angle Random Walk, 매 스텝 독립 white noise
+            K_g · a     : g-sensitivity, 가속도가 자이로 출력을 오염
 
-단위 규칙:
-    입력  ω_true : [rad/s]
-    출력  ω_meas : [rad/s]
-    내부 연산 전부 SI
+    Unit Convention:
+        Input  ω_true : [rad/s]
+        Output  ω_meas : [rad/s]
+        Internal computations in SI units (rad/s, m/s²)
 """
-#*************************************************************************/
-# File Name: ./src/core/model/gyroscope.py
-# Author: Beomjun Chung
-# Updated: 2026-05-17
-#
-# Description:
-#   IMU 센서 모델. trajectory에서 받은 진짜 상태값을 세 센서 모델에 넣어
-#   노이즈가 섞인 측정값을 만들어냄. runner.py가 매 스텝마다 호출하는 핵심 인터페이스.
-#*************************************************************************/
 
 from __future__ import annotations
 
 import numpy as np
-from ..noise.white import ARWNoise
-from ..noise.colored import GaussMarkovProcess, BrownNoise
-from ..noise.profile import GyroNoiseProfile
 
+from ahrs.core.noise.white import ARWNoise
+from ahrs.core.noise.colored import GaussMarkovProcess, BrownNoise
+from ahrs.core.noise.profile import GyroNoiseProfile
 
 class Gyroscope:
-    """
-    자이로스코프 물리 센서 모델.
-
-    노이즈 성분 4종 + 결정론적 오차 2종을 합산하여
-    실제 자이로가 출력하는 측정값을 시뮬레이션.
-    """
-
     def __init__(self, profile: GyroNoiseProfile, seed: int | None = None):
-        """
-        Args:
-            profile: 노이즈 파라미터 묶음 (profile.py 참조)
-            seed:    재현성을 위한 난수 시드
-        """
         self.profile = profile
 
-        # 난수 시드를 각 생성기에 분산 (같은 시드 주면 상관됨)
+        # make random seeds for each noise generator
         rng = np.random.default_rng(seed)
         seeds = rng.integers(0, 2**31, size=3)
 
-        # ── 노이즈 생성기 ──────────────────────────────────────────
-        self._arw = ARWNoise(
+        # noise generators
+        self._arw = ARWNoise( # Angle Random Walk
             sigma_per_sqrt_s=profile.arw_rad_sqrts,
             size=3,
             seed=int(seeds[0]),
         )
-        self._bi = GaussMarkovProcess(
+        self._bi = GaussMarkovProcess( # Bias Instability
             sigma_bi=profile.bi_sigma_rad_s,
             corr_time_s=profile.bi_corr_time_s,
             size=3,
             seed=int(seeds[1]),
         )
-        self._rrw = BrownNoise(
+        self._rrw = BrownNoise( # Rate Random Walk
             sigma_rrw=profile.rrw_rad_s_sqrts,
             size=3,
             seed=int(seeds[2]),
         )
 
-        # ── 스케일 팩터 행렬 ───────────────────────────────────────
+        # scale factor matrix (diagonal only, misalignment ignored)
         # 대각 성분만 사용 (축간 misalignment 무시, 필요시 확장)
         sf = profile.scale_factor_ppm * 1e-6
         self._scale = np.eye(3) + np.diag([sf, sf, sf])
 
-        # ── 상태 초기화 ────────────────────────────────────────────
+        # state reset
         # turn-on bias는 매 reset()마다 가우시안으로 랜덤 생성
         # profile의 값을 표준편차로 사용
         self._rng = np.random.default_rng(seed)
         self._turn_on_bias = self._sample_turn_on_bias()
 
     # ── public API ────────────────────────────────────────────────────────────
-
     def measure(self, omega_true: np.ndarray, accel_body: np.ndarray,
                 dt: float) -> np.ndarray:
         """
@@ -130,7 +111,6 @@ class Gyroscope:
         self._turn_on_bias = self._sample_turn_on_bias()
 
     # ── private ───────────────────────────────────────────────────────────────
-
     def _sample_turn_on_bias(self) -> np.ndarray:
         """
         전원 인가 시 바이어스를 가우시안으로 샘플링.
@@ -143,7 +123,6 @@ class Gyroscope:
         return self._rng.normal(loc=self.profile.turn_on_bias_rad_s, scale=std * 0.1)
 
     # ── class method ──────────────────────────────────────────────────────────
-
     @classmethod
     def from_config(cls, cfg: dict, seed: int | None = None) -> "Gyroscope":
         """config.yaml의 imu.gyroscope 섹션에서 직접 생성."""

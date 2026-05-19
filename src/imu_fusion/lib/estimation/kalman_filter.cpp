@@ -18,7 +18,7 @@ static void axisInit(EkfAxis& a, float angle0, float q_ang, float q_bi, float r_
 // dt    : time step [s]
 static void axisUpdate(EkfAxis& a, float rate, float meas, float dt)
 {
-    // ── Predict ──────────────────────────────────────────────────────────
+    // pridiction
     float angle_pred = a.angle + (rate - a.bias) * dt;
 
     // P_pred = A*P*A^T + Q,  A = [[1,-dt],[0,1]]
@@ -27,7 +27,7 @@ static void axisUpdate(EkfAxis& a, float rate, float meas, float dt)
     float P10 = a.P[1][0] - dt * a.P[1][1];
     float P11 = a.P[1][1] + a.q_bias;
 
-    // ── Update (H = [1, 0]) ───────────────────────────────────────────────
+    // 
     float S   = P00 + a.r_angle;   // innovation variance
     float K0  = P00 / S;           // Kalman gain for angle
     float K1  = P10 / S;           // Kalman gain for bias

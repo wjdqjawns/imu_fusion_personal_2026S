@@ -20,7 +20,6 @@ import numpy as np
 
 from ahrs.core.trajectory.base import TrajectoryBase, TruthData
 
-
 class StaticTrajectory(TrajectoryBase):
     """완전 정지 trajectory."""
 
@@ -38,8 +37,7 @@ class StaticTrajectory(TrajectoryBase):
         vel         = np.zeros((n, 3), dtype=float)
         accel_world = np.zeros((n, 3), dtype=float)
 
-        return TruthData(t=t, q=q, omega=omega,
-                         pos=pos, vel=vel, accel_world=accel_world)
+        return TruthData(t=t, q=q, omega=omega, pos=pos, vel=vel, accel_world=accel_world)
 
     @classmethod
     def from_config(cls, cfg: dict) -> "StaticTrajectory":

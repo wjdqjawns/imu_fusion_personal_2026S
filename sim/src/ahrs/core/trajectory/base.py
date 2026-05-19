@@ -24,7 +24,6 @@ from dataclasses import dataclass
 
 import numpy as np
 
-
 @dataclass
 class TruthData:
     """ground truth 시계열 데이터 묶음."""
@@ -35,13 +34,11 @@ class TruthData:
     vel:         np.ndarray   # [m/s],     shape (N, 3)  world frame
     accel_world: np.ndarray   # [m/s²],    shape (N, 3)  world frame (gravity 제외)
 
-
 class TrajectoryBase(ABC):
     """모든 trajectory 클래스의 추상 기반."""
 
     @abstractmethod
-    def generate(self, dt: float, duration: float,
-                 initial_q: np.ndarray | None = None) -> TruthData:
+    def generate(self, dt: float, duration: float, initial_q: np.ndarray | None = None) -> TruthData:
         """
         ground truth 시계열 생성.
 

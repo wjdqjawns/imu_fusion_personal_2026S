@@ -32,20 +32,20 @@ from dataclasses import dataclass, field
 import numpy as np
 
 # 단위변환 상수
-_DEG_TO_RAD     = np.pi / 180.0
+_DEG2RAD     = np.pi / 180.0
+_RAD2DEG     = 180.0 / np.pi
 _SQRT_3600      = 60.0          # √3600 = 60
 _G_TO_MS2       = 9.80665
-
 
 @dataclass
 class GyroNoiseProfile:
     """자이로스코프 노이즈 파라미터 (내부 SI 단위)."""
 
-    turn_on_bias_rad_s:       np.ndarray  # [rad/s]
-    arw_rad_sqrts:            float       # [rad/√s]
-    bi_sigma_rad_s:           float       # [rad/s]
-    rrw_rad_s_sqrts:          float       # [rad/s/√s]
-    bi_corr_time_s:           float       # [s]
+    turn_on_bias_rad_s:       np.ndarray  # [rad/sec]
+    arw_rad_sqrts:            float       # [rad/√sec]
+    bi_sigma_rad_s:           float       # [rad/sec]
+    rrw_rad_s_sqrts:          float       # [rad/sec/√sec]
+    bi_corr_time_s:           float       # [sec]
     scale_factor_ppm:         float       # [ppm]
     g_sensitivity_rad_s_per_ms2: np.ndarray  # [rad/s per m/s²], shape (3,3)
 
@@ -54,14 +54,14 @@ class GyroNoiseProfile:
         """config.yaml imu.gyroscope 섹션에서 생성."""
         bias = np.deg2rad(np.array(cfg["bias_deg_s"], dtype=float))
 
-        arw_rad = cfg["arw_deg_per_sqrth"] * _DEG_TO_RAD / _SQRT_3600
-        bi_rad  = cfg["bias_instability_deg_h"] * _DEG_TO_RAD / 3600.0
-        rrw_rad = cfg["rrw_deg_per_h_sqrth"] * _DEG_TO_RAD / (3600.0 * _SQRT_3600)
+        arw_rad = cfg["arw_deg_per_sqrth"] * _DEG2RAD / _SQRT_3600
+        bi_rad  = cfg["bias_instability_deg_h"] * _DEG2RAD / 3600.0
+        rrw_rad = cfg["rrw_deg_per_h_sqrth"] * _DEG2RAD / (3600.0 * _SQRT_3600)
 
         g_sens_raw = np.array(cfg.get("g_sensitivity_deg_s_per_g", [0.0, 0.0, 0.0]),
                               dtype=float)
         # [deg/s per g] → [rad/s per m/s²]
-        g_sens = np.diag(g_sens_raw * _DEG_TO_RAD / _G_TO_MS2)
+        g_sens = np.diag(g_sens_raw * _DEG2RAD / _G_TO_MS2)
 
         return cls(
             turn_on_bias_rad_s=bias,
@@ -72,7 +72,6 @@ class GyroNoiseProfile:
             scale_factor_ppm=float(cfg.get("scale_factor_ppm", 0.0)),
             g_sensitivity_rad_s_per_ms2=g_sens,
         )
-
 
 @dataclass
 class AccelNoiseProfile:
@@ -103,7 +102,6 @@ class AccelNoiseProfile:
             scale_factor_ppm=float(cfg.get("scale_factor_ppm", 0.0)),
             vre_coef=float(cfg.get("vre_coef", 0.0)),
         )
-
 
 @dataclass
 class MagNoiseProfile:

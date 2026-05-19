@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import numpy as np
 
-
 class ARWNoise:
     """
     Angle Random Walk — 자이로 white noise.
@@ -31,7 +30,7 @@ class ARWNoise:
                  seed: int | None = None):
         """
         Args:
-            sigma_per_sqrt_s: 연속 PSD의 제곱근 [rad/√s]
+            sigma_per_sqrt_s: 연속 PSD의 제곱근 [\frac{rad}{\sqrt{sec}}]
             size:             출력 벡터 크기
             seed:             난수 시드
         """
@@ -42,7 +41,7 @@ class ARWNoise:
     def sample(self, dt: float) -> np.ndarray:
         """
         한 샘플 반환.
-        이산화: σ_discrete = σ_continuous / √dt
+        이산화: \sigma_{discrete} = \sigma_{continuous} / \sqrt{dt}
         """
         sigma_d = self._sigma / np.sqrt(dt)
         return self._rng.normal(0.0, sigma_d, self._size)
@@ -58,7 +57,7 @@ class VRWNoise:
                  seed: int | None = None):
         """
         Args:
-            sigma_per_sqrt_s: 연속 PSD의 제곱근 [m/s²/√s]
+            sigma_per_sqrt_s: 연속 PSD의 제곱근 [m/sec²/\sqrt{sec}]
         """
         self._sigma = float(sigma_per_sqrt_s)
         self._size  = size

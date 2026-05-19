@@ -24,10 +24,7 @@ import numpy as np
 from ahrs.core.trajectory.base import TrajectoryBase, TruthData
 from ahrs.core.orientation.transforms import Transforms
 
-
 class CircularTrajectory(TrajectoryBase):
-    """일정 yaw rate 원형 선회 trajectory."""
-
     def __init__(self, angular_velocity_deg_s: float = 20.0,
                  roll_deg: float = 0.0, pitch_deg: float = 0.0):
         self._yaw_rate = np.deg2rad(angular_velocity_deg_s)  # [rad/s]
