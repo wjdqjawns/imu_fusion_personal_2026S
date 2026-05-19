@@ -1,30 +1,75 @@
 #pragma once
-
 #include "types.h"
 
-// mode selection
-// #define MODE_RAW
+//------------------------------------------------------------
+// Mode selection — define exactly ONE
+//------------------------------------------------------------
+#define MODE_RAW
 // #define MODE_CALIBRATION
-#define MODE_KALMAN
+// #define MODE_STATE_ESTIMATION
 
-// sampling
-constexpr float Ts        = 0.05f;    // sampling time [s]  → 20 Hz
-constexpr int   LOOP_MS   = 50;       // delay per loop [ms]
-constexpr int   CALIB_N   = 1000;     // calibration sample count
-constexpr int   CALIB_DLY = 3;        // delay between calibration samples [ms]
-constexpr long   SERIAL_BAUD = 115200;
+//------------------------------------------------------------
+// Filter selection (MODE_STATE_ESTIMATION)
+//
+// Define any combination. All active filters run on the SAME
+// sensor data each loop, enabling fair single-session comparison.
+//
+//   0: FILTER_GYRO_ONLY    pure gyro integration — observe drift
+//   1: FILTER_EKF          2-state EKF with gyro-bias estimation
+//   2: FILTER_COMPLEMENTARY complementary filter
+//   3: FILTER_MAHONY        Mahony nonlinear complementary
+//   4: FILTER_MADGWICK      Madgwick gradient descent
+//------------------------------------------------------------
+#define FILTER_GYRO_ONLY
+#define FILTER_EKF
+// #define FILTER_COMPLEMENTARY
+// #define FILTER_MAHONY
+// #define FILTER_MADGWICK
 
-// kalman filter noise parameters
-constexpr float KF_Q_PHI   = 0.001f;  // process noise  – roll  [deg²]
-constexpr float KF_Q_THETA = 0.001f;  // process noise  – pitch [deg²]
-constexpr float KF_R_PHI   = 0.03f;   // measurement noise – roll  [deg²]
-constexpr float KF_R_THETA = 0.03f;   // measurement noise – pitch [deg²]
+//------------------------------------------------------------
+// Timing
+//------------------------------------------------------------
+constexpr float Ts        = 0.01f;    // sampling period [s] = 100 Hz
+constexpr int   LOOP_MS   = 10;       // loop delay [ms]
+constexpr int   CALIB_N   = 500;      // calibration sample count
+constexpr int   CALIB_DLY = 5;        // delay between cal samples [ms]
+constexpr long  SERIAL_BAUD = 115200;
 
-// calibration bias
-// MODE_CALIBRATION 실행 후 얻은 값을 여기에 붙여넣기
-extern ImuBias g_bias;
+//------------------------------------------------------------
+// Math constants
+//------------------------------------------------------------
+constexpr float RAD2DEG = 57.29577951f;
+constexpr float DEG2RAD = 0.01745329f;
 
-// runtime state variables
-extern ImuData    g_imuRaw;    // latest raw sensor reading
-extern ImuData    g_imuCal;    // latest bias-compensated reading
-extern EulerAngle g_euler;     // latest Kalman filter output
+//------------------------------------------------------------
+// EKF tuning
+// Q_ANGLE: process noise — angle state  [rad^2/step]
+// Q_BIAS:  process noise — gyro bias    [rad^2/s^2/step]
+// R_ANGLE: measurement noise from accel [rad^2]
+//------------------------------------------------------------
+constexpr float EKF_Q_ANGLE = 0.001f;
+constexpr float EKF_Q_BIAS  = 0.003f;
+constexpr float EKF_R_ANGLE = 0.03f;
+
+//------------------------------------------------------------
+// Complementary filter
+//------------------------------------------------------------
+constexpr float CF_ALPHA = 0.98f;     // gyro trust weight (0=accel, 1=gyro)
+
+//------------------------------------------------------------
+// Mahony filter
+//------------------------------------------------------------
+constexpr float MAHONY_KP = 2.0f;
+constexpr float MAHONY_KI = 0.005f;
+
+//------------------------------------------------------------
+// Madgwick filter
+//------------------------------------------------------------
+constexpr float MADGWICK_BETA = 0.1f;
+
+//------------------------------------------------------------
+// Global state (definitions in src/global_var.cpp)
+//------------------------------------------------------------
+extern ImuData    g_imuRaw;   // latest raw sensor reading
+extern ImuData    g_imuCal;   // bias-corrected reading
+extern ImuBias    g_bias;     // calibration bias

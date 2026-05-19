@@ -1,58 +1,36 @@
 #pragma once
+#include <Arduino.h>
 
-struct ImuData
-{
-    // raw sensor accelerometer [g]
-    float ax;
-    float ay; 
-    float az;
+// IMU sensor reading (raw or bias-corrected, same layout)
+typedef struct {
+    float ax, ay, az;   // accelerometer [g]
+    float gx, gy, gz;   // gyroscope     [rad/s]
+    float mx, my, mz;   // magnetometer  [uT]
+} ImuData;
 
-    // raw sensor gyroscope [deg/s]
-    float gx;
-    float gy;
-    float gz;
-    
-    // raw sensor magnetometer [μT]
-    float mx;
-    float my;
-    float mz;
-};
+// Per-axis bias from calibration
+typedef struct {
+    float ax, ay, az;   // accel bias [g]
+    float gx, gy, gz;   // gyro bias  [rad/s]
+} ImuBias;
 
-struct ImuBias
-{
-    // biases for accelerometer [g]
-    float ax_bias = 0.0f;
-    float ay_bias = 0.0f;
-    float az_bias = 0.0f;
+// Euler angles: ZYX aerospace convention, all in [rad]
+// phi = roll, theta = pitch, psi = yaw
+typedef struct {
+    float phi;
+    float theta;
+    float psi;
+} EulerAngle;
 
-    // biases for gyroscope [deg/s]
-    float gx_bias = 0.0f;
-    float gy_bias = 0.0f;
-    float gz_bias = 0.0f;
+// Unit quaternion: q = w + xi + yj + zk
+typedef struct {
+    float w, x, y, z;
+} Quat;
 
-    // biases for magnetometer [μT]
-    float mx_bias = 0.0f;
-    float my_bias = 0.0f;
-    float mz_bias = 0.0f;
-};
+// Direction Cosine Matrix: row-major 3x3
+// Access element at row r, col c: R.m[r*3 + c]
+typedef struct {
+    float m[9];
+} Dcm;
 
-struct EulerAngle
-{
-    float phi   = 0.0f;
-    float theta = 0.0f;
-    float psi   = 0.0f;
-
-    EulerAngle() = default;
-    EulerAngle(float phi, float theta, float psi) : phi(phi), theta(theta), psi(psi) {}
-};
-
-struct Quaternion
-{
-    float w = 1.0f;
-    float x = 0.0f;
-    float y = 0.0f;
-    float z = 0.0f;
-
-    Quaternion() = default;
-    Quaternion(float w, float x, float y, float z) : w(w), x(x), y(y), z(z) {}
-};
+static constexpr float PI_F = PI;
