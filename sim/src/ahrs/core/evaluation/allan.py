@@ -30,10 +30,7 @@ from __future__ import annotations
 
 import numpy as np
 
-
 class AllanVariance:
-    """Overlapping Allan Variance 분석."""
-
     def __init__(self, data: np.ndarray, dt: float, n_tau: int = 100):
         """
         Args:
@@ -117,11 +114,11 @@ class AllanVariance:
         adev = self._adev
 
         def _extract_1d(ad: np.ndarray) -> dict:
-            # ARW: τ=1s 근방
+            # ARW: τ=1s
             idx1 = np.argmin(np.abs(tau - 1.0))
             arw = float(ad[idx1])
 
-            # BI: 최솟값
+            # BI: min
             bi = float(np.min(ad))
 
             # RRW: τ=3s 근방, 기울기 +1/2

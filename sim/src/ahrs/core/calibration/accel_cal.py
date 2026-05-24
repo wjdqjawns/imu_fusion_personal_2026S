@@ -4,7 +4,7 @@ Author: Beomjun Chung
 Updated: 2026-05-18
 
 Description:
-  가속도계 6-position 캘리브레이션
+    가속도계 6-position 캘리브레이션
 
     purpose:
         6 방향(±x, ±y, ±z) 정지 자세에서 bias + scale factor 추정.
@@ -19,7 +19,6 @@ Description:
 from __future__ import annotations
 
 import numpy as np
-
 
 class AccelCalibrator:
     """6-position 가속도계 캘리브레이션."""
@@ -54,7 +53,6 @@ class AccelCalibrator:
         return self._bias.copy(), self._scale.copy()
 
     def apply(self, accel_raw: np.ndarray) -> np.ndarray:
-        """추정된 파라미터로 원시 측정값 보정."""
         return (accel_raw - self._bias) / (self._scale + 1e-12)
 
     def report(self) -> dict:

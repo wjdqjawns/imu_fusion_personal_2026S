@@ -1,100 +1,111 @@
 # =============================================================
 #  IMU Simulation & AHRS Filter Comparison  —  config.yaml
 #     - frame:      NED (North-East-Down)
-#     - quaternion: [x, y, z, w]
+#     - quaternion: [x, y, z, w]  (scalar-last)
 #     - euler:      ZYX order (yaw → pitch → roll), [rad]
 #     - rotation:   v_world = R · v_body  (body → world)
-#     - gravity:    at NED [0, 0, +g]  (inverse sign = +Z)
-#     - magnetic:   at NED [north, east, down]
+#     - gravity:    NED [0, 0, +g]  (+Z = Down)
+#     - magnetic:   NED [north, east, down]  [µT]
 # =============================================================
 
-# --- simulation settings -------------------------------------
+# ── 1. Simulation ─────────────────────────────────────────────
 simulation:
-  dt: 0.01          # 시간 간격 [s] → 100 Hz
-  duration: 60.0    # 총 시뮬 시간 [s]
-  random_seed: 42   # 재현성 보장
+  dt: 0.001           # 샘플 간격 [s] → 1000 Hz
+  duration: 60.0     # 총 시뮬 시간 [s]
+  random_seed: 42    # 재현성 보장
 
-# --- environment settings ------------------------------------
+# ── 2. Environment ────────────────────────────────────────────
 env:
   gravity:
-    mode: wgs84       # wgs84 (위도 보정 Somigliana) | manual
-    lat_deg: 35.87    # 대구 위도
-    alt_m: 50.0
-    # mode: manual 시 아래 사용
-    # magnitude_m_s2: 9.797
+    mode: manual
+    ned_m_s2: [0, 0, 9.797]
+
+    # mode: wgs84        # wgs84 (Somigliana 위도 보정) | manual
+    # lat_deg: 35.87     # 대구 위도
+    # alt_m: 106.0       # 대구 고도
 
   magnetic:
-    # mode: preset      # manual | preset | location
-    # city: daegu       # seoul | daegu | busan | tokyo | ...
-
-    mode: manual # NED 직접 입력 [uT]
+    mode: manual       # manual | preset | wmm | igrf
     ned_uT: [29.8, -3.8, 42.5]
 
-    # mode: wmm       # WMM(World Magnetic Model) (pip install wmm2020)
+    # mode: preset
+    # city: daegu      # seoul | daegu | busan | tokyo | ...
+
+    # mode: wmm
     # lat_deg: 35.87
     # lon_deg: 128.60
     # alt_m: 50.0
-    # date: "2024-01-01"   # 생략 시 오늘 날짜
+    # date: "2024-01-01"
 
-    # mode: location # ppigrf 라이브러리 사용 (pip install ppigrf)
-    # lat_deg: 35.87
-    # lon_deg: 128.60
-    # alt_m: 50.0
-    # date: "2024-01-01"   # 생략 시 오늘 날짜
+  thermal:
+    mode: constant
+    temperature_K: 298.15  # 25°C
 
-# --- ground truth trajectory settings --------------------------
+# ── 3. Trajectory ─────────────────────────────────────────────
 trajectory:
-  type: static    # static(for allan variance) | circular | figure8 | spherical(for mag calibration)
+  type: sinusoidal    # static | circular | figure8 | spherical | sinusoidal
 
   static:
-    duration: 300.0  # [s] Allan variance 분석 시 300 이상 권장
+    duration: 300.0   # [s] Allan variance 분석 시 300+ 권장
+  
+  spherical:
+    duration: 120.0   # 자력계 캘리브레이션용 (충분한 전방향 커버)
+    rate_deg_s: 30.0
 
   circular:
     duration: 60.0
-    angular_velocity_deg_s: 20.0  # yaw rate
-    roll_deg: 10.0                # 선회 중 일정 롤각 (0이면 수평 선회)
+    angular_velocity_deg_s: 20.0
+    roll_deg: 0.0
     pitch_deg: 0.0
 
   figure8:
     duration: 60.0
-    max_tilt_deg: 45.0   # 최대 기울기 (roll/pitch)
-    period_s: 8.0        # 8자 한 주기
+    max_tilt_deg: 45.0
+    period_s: 8.0
 
-  spherical:
-    duration: 30.0       # 자기계 캘리브레이션용, 모든 방향 커버
-    rate_deg_s: 30.0     # 회전 속도
+  sinusoidal:
+    # Nyquist limit = dt(0.001s) → fs=1000Hz → f_max < 500Hz
+    # 0Hz 제외 (sin(0)=0, 자세 변화 없음)
+    frequencies_hz: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 40.0]
+    amplitude_deg: 30.0
+    axes: [roll, pitch, yaw]
+    phase_offset_deg: [0, 45, 90]
+    duration_per_freq_s: null    # null → duration / n_freqs
 
-# --- initial conditions (for filter convergence comparison) --
-initial_conditions:
-  attitude_error_rad:  # 필터 초기 자세 오차 (수렴 속도 비교용) [rad]
-    roll:  0.1745
-    pitch:  0.0873
-    yaw:   0.3491     # if w\o mag then difficult to converge yaw
-  
-  gyro_bias_error_deg_s: [0.1, -0.1, 0.05] # 필터 초기 자이로 바이어스 오차 [rad/s]
-
-# --- sensor models--------------------------------------------
-imu:
-  sample_rate_hz: 100
-
+# ── 4. Sensor Models ──────────────────────────────────────────
+sensor:
   gyroscope:
+    sample_rate_hz: 1000
+    # ── 물리 모델 (시뮬레이터가 측정값 생성에 사용) ──────────────
     bias_deg_s: [0.5, -0.3, 0.2]
-    arw_deg_per_sqrth: 0.15          # [deg/\sqrt{h}]  ARW, 기울기 -1/2 구간
-    bias_instability_deg_h: 3.0      # [deg/h]   BI, Allan curve 최솟값
-    rrw_deg_per_h_sqrth: 0.05        # [deg/h/\sqrt{h}] RRW, 기울기 +1/2 구간
+    arw_deg_per_sqrth: 0.15          # [deg/√h]  ARW  (Allan 기울기 -1/2)
+    bias_instability_deg_h: 3.0      # [deg/h]   BI   (Allan 최솟값)
+    rrw_deg_per_h_sqrth: 0.05        # [deg/h/√h] RRW (Allan 기울기 +1/2)
     bias_correlation_time_s: 100.0   # Gauss-Markov 상관 시간 [s]
     scale_factor_ppm: 500
     g_sensitivity_deg_s_per_g: [0.01, 0.01, 0.01]
+    # ── 캘리브레이션 추정값 (필터가 사용하는 보정값) ─────────────
+    calibration:
+      bias_deg_s: [0.48, -0.29, 0.19]  # true: [0.5, -0.3, 0.2] + 잔류 오차
 
   accelerometer:
+    sample_rate_hz: 1000
+    # ── 물리 모델 ────────────────────────────────────────────────
     bias_g: [0.02, -0.01, 0.03]
-    vrw_m_per_s_per_sqrth: 0.05      # [m/s/\sqrt{h}]
-    bias_instability_ug: 50.0        # [ug]
+    vrw_m_per_s_per_sqrth: 0.05      # [m/s/√h]  VRW
+    bias_instability_ug: 50.0        # [µg]
     rrw_m_per_s2_per_sqrth: 0.002
     bias_correlation_time_s: 200.0
     scale_factor_ppm: 300
+    # ── 캘리브레이션 추정값 ──────────────────────────────────────
+    # accel bias는 AHRS에서 적분되지 않으므로 상태공간 미포함
+    # → 잔류 오차는 R_accel(측정 노이즈)에 흡수
+    calibration:
+      bias_g: [0.019, -0.010, 0.029]  # true: [0.02, -0.01, 0.03] + 잔류 오차
 
-  magnetometer: # real distortion values (캘리브레이션이 추정해야 할 숨겨진 값)
+  magnetometer:
+    sample_rate_hz: 1000
+    # ── 물리 모델 ────────────────────────────────────────────────
     hard_iron_uT: [5.0, -3.0, 2.0]
     soft_iron_matrix:
       - [1.08,  0.02,  0.00]
@@ -103,20 +114,43 @@ imu:
     noise_std_uT: 0.1
     bias_instability_uT: 0.05
     bias_correlation_time_s: 100.0
+    # ── 캘리브레이션 추정값 ──────────────────────────────────────
+    # hard/soft iron 보정으로 mag bias 제거 → 상태공간 미포함
+    # → 잔류 오차는 R_mag(측정 노이즈)에 흡수
+    calibration:
+      hard_iron_uT: [4.8, -2.9, 1.9]  # true: [5.0, -3.0, 2.0] + 잔류 오차
+      soft_iron_matrix:
+        - [1.075,  0.019,  0.001]
+        - [0.011,  0.952,  0.009]
+        - [0.001, -0.021,  1.028]
 
-  disturbance: # timestamped disturbance events added to raw IMU data (for robustness test)
+  # ── 외란 (sensor에 가해지는 물리적 간섭) ──────────────────────
+  # sensor 하위에 배치: 외란은 센서 측정값을 오염시키는 물리 현상
+  disturbance:
+    # accel update 비활성화 조건:
+    #   |a_meas| - g > accel_threshold → 선형가속도 간섭으로 판단, correction 스킵
     linear_acceleration:
       enabled: true
       events:
         - onset_time_s: 12.0
           duration_s: 2.0
           magnitude_g: 0.3
-          direction_body: [1.0, 0.0, 0.0]   # based on body frame (forward, right, down)
+          direction_body: [1.0, 0.0, 0.0]  # body frame (forward, right, down)
         - onset_time_s: 35.0
           duration_s: 3.0
           magnitude_g: 0.5
           direction_body: [0.0, 1.0, 0.0]
 
+    # gyro predict 오염: ω_meas에 직접 가산 → 자세 오차 누적
+    angular_velocity:
+      enabled: true
+      events:
+        - onset_time_s: 15.0
+          duration_s: 1.0
+          magnitude_deg_s: 50.0
+          axis_body: [0.0, 0.0, 1.0]       # body frame (roll, pitch, yaw)
+
+    # mag correction 오염: yaw 추정 교란
     magnetic:
       enabled: true
       events:
@@ -124,100 +158,150 @@ imu:
           duration_s: 5.0
           disturbance_uT: [8.0, -3.0, 2.0]  # body frame 기준
 
-# --- calibration settings ------------------------------------
-calibration:
-  enabled: true
-
-  allan_variance:
+# ── 5. Sensor Characterization ────────────────────────────────
+# Stage 3: 센서 특성 분석 (파이프라인에서 독립 실행 가능)
+# 노이즈 분석 도구 + 캘리브레이션 절차를 분리하여 명확화
+sensor_characterization:
+  # 5-A. 노이즈 분석 — 정적 궤적에서 수집한 데이터 분석
+  noise_analysis:
     enabled: true
-    duration_s: 300.0    # (tau_max = duration/5 = 60s)
-    n_tau: 100            # 로그 스케일 tau 포인트 수
+    duration_s: 300.0              # tau_max = duration / 5 = 60 s
 
-  gyro_static:
-    enabled: true
-    duration_s: 10.0      # stop bias measurement duration
+    allan_variance:
+      enabled: true
+      n_tau: 100                   # 로그 스케일 tau 포인트 수
+      # 해석: 기울기 -0.5 -> ARW, 0 -> BI, +0.5 -> RRW
 
-  accel_6pos:
-    enabled: false        # 기본 비활성 (별도 trajectory 필요)
-    hold_duration_s: 5.0
-    positions: ["+z", "-z", "+x", "-x", "+y", "-y"]
+    psd:
+      enabled: true                # Welch method
+      # 해석: 플랫 -> 백색잡음, 1/f -> flicker, 스파이크 -> 진동 간섭
 
-  magnetometer:
-    enabled: true
-    duration_s: 120.0       # 120s = 12000 samples → 전체 구면 커버 충분
-    method: ellipsoid_fit   # ellipsoid_fit | sphere_fit
-    apply_hard_iron: true
-    apply_soft_iron: true
-  
-  estimated_params: # estimation values (true + \epsilon; for realistic calibration)
-    hard_iron_uT: [4.8, -2.9, 1.9]       # true: [5.0, -3.0, 2.0]
-    soft_iron_matrix:
-      - [1.075,  0.019,  0.001]
-      - [0.011,  0.952,  0.009]
-      - [0.001, -0.021,  1.028]
-    accel_bias_g: [0.019, -0.010, 0.029]  # true: [0.02, -0.01, 0.03]
-    gyro_bias_deg_s: [0.48, -0.29, 0.19]  # true: [0.5, -0.3, 0.2]
+    fft:
+      enabled: true
 
-# --- ahrs filter settings ------------------------------------
-filters:
-  run: [complementary, mahony, madgwick, ekf]
+  # 5-B. 캘리브레이션 절차 — 각 절차가 독립적으로 on/off 가능
+  calibration_procedures:
+    gyro_static:
+      enabled: true
+      duration_s: 10.0             # 정지 상태 바이어스 측정
+      # 출력: 추정 bias → sensor.gyroscope.calibration.bias_deg_s에 반영
+    accel_6pos:
+      enabled: false               # 6면 측정 (별도 trajectory 필요)
+      hold_duration_s: 5.0
+      positions: ["+z", "-z", "+x", "-x", "+y", "-y"]
+      # 출력: 추정 bias → sensor.accelerometer.calibration.bias_g에 반영
+    magnetometer:
+      enabled: true
+      duration_s: 120.0            # 구면 전방향 커버 (spherical trajectory 사용)
+      method: ellipsoid_fit        # ellipsoid_fit | sphere_fit
+      apply_hard_iron: true
+      apply_soft_iron: true
+      # 출력: 추정값 → sensor.magnetometer.calibration에 반영
 
+# ── 6. Estimator ──────────────────────────────────────────────
+estimator:
+  run: [complementary, mahony, madgwick, ekf, ekf_euler, eskf]
+
+  # ── 필터 공통 초기 조건 (수렴 속도 비교 실험용) ─────────────
+  # initial_states를 estimator 하위로 이동:
+  # 초기 오차는 필터 실험 파라미터이므로 estimator 컨텍스트에 속함
+  initial_conditions:
+    attitude_error_deg:            # 단위 통일: deg (yaml에서 직관적)
+      roll:  10.0                  # ≈ 0.1745 rad
+      pitch:  5.0                  # ≈ 0.0873 rad
+      yaw:   20.0                  # ≈ 0.3491 rad (자력계 없으면 수렴 어려움)
+    gyro_bias_error_deg_s: [0.1, -0.1, 0.05]
+
+  # ── 필터별 파라미터 ──────────────────────────────────────────
   complementary:
-    alpha: 0.98         # gyro weight; $cutoff = (1-\alpha) / (2\pi\cdot\alpha\cdot dt) \approx 0.08 [Hz]$
+    alpha: 0.98                    # gyro weight; cutoff ≈ (1-α)/(2π·α·dt) ≈ 0.08 Hz
     use_magnetometer: true
 
   mahony:
-    kp: 1.8             # proportional gain (convergence speed)
-    ki: 0.08            # integral gain (bias estimation)
+    kp: 1.8                        # proportional gain (수렴 속도)
+    ki: 0.08                       # integral gain (바이어스 추정)
     use_magnetometer: true
 
   madgwick:
-    beta: 0.08          # gyro error weighted value; $\beta = \omega_{err}\cdot \sqrt{\frac{3}{4}}$
+    beta: 0.08                     # gyro error: β = ω_err · √(3/4)
     use_magnetometer: true
 
-  ekf: # state vector: quaternion(4) + gyro_bias(3) = dim 7
-    gyro_noise_std_rad_s: 0.003       # ARW based process noise
-    gyro_bias_rw_std_rad_s2: 0.0005   # RRW based process noise
-    accel_meas_std_m_s2: 0.05         # measurement noise
-    mag_meas_std_uT: 0.1
-    init_attitude_std_deg: 10.0       # initial covariance
+  ekf_quat:
+    # state: x = [q_w, q_x, q_y, q_z, b_gx, b_gy, b_gz]  (7D)
+    # Q 파라미터: gyro white noise → 자세 블록, bias RW → 바이어스 블록
+    # R 파라미터: accel/mag 측정 노이즈 (bias 잔류 오차 흡수)
+    gyro_noise_std_rad_s: 0.003       # → Q 자세 블록 σ_g
+    gyro_bias_rw_std_rad_s2: 0.0005   # → Q 바이어스 블록 σ_b
+    accel_meas_std_m_s2: 0.05         # → R_accel (accel bias 잔류 포함)
+    mag_meas_std_uT: 0.1              # → R_mag   (캘리브레이션 잔류 포함)
+    init_attitude_std_deg: 10.0
     init_bias_std_rad_s: 0.01
-    accel_threshold_g: 0.2            # update skip upper condition
+    accel_threshold_g: 0.2            # 선형가속도 간섭 감지 시 correction 스킵
 
-# --- export settings -----------------------------------------
-output:
-  base_dir: export
-  timestamp_dirs: true    # export/runs/2026-05-17_143022/
+  ekf_euler:
+    # state: x = [φ, θ, ψ, b_gx, b_gy, b_gz]  (6D)
+    # 주의: pitch ±90°에서 W(φ,θ) 행렬 분모 cos(θ)→0 → 특이점 발산
+    # Q 파라미터
+    gyro_noise_std_rad_s: 0.003       # → Q 자세 블록 σ_g
+    gyro_bias_rw_std_rad_s2: 0.0005   # → Q 바이어스 블록 σ_b
+    # R 파라미터
+    accel_meas_std_m_s2: 0.05         # → R_accel
+    mag_meas_std_uT: 0.5              # → R_mag (수치 Jacobian 사용으로 약간 크게)
+    init_attitude_std_deg: 10.0
+    init_bias_std_rad_s: 0.01
+    accel_threshold_g: 0.2
+
+  eskf:
+    # nominal state: x̂ = [q̂, b̂_g]
+    # error state:   δx = [δθ(3), δb_g(3)]  (6D, 접선 공간 → 유클리드 연산)
+    # Q, R 역할은 EKF와 동일하나 공분산이 SO(3) 구조를 정확히 반영
+    gyro_noise_std_rad_s: 0.003       # → Q σ_g
+    gyro_bias_rw_std_rad_s2: 0.0001   # → Q σ_b (EKF보다 작게: manifold 정확)
+    accel_meas_std_m_s2: 0.05         # → R_accel
+    mag_meas_std_uT: 0.1              # → R_mag
+    init_attitude_std_deg: 10.0
+    init_bias_std_rad_s: 0.01
+    accel_threshold_g: 0.2
+
+# ── 7. Export ─────────────────────────────────────────────────
+export:
+  root_dir: export
+  timestamp_dirs: true             # export/2026-05-25_143022/
 
   log:
     enabled: true
-    format: log # log | csv
-    level: INFO           # DEBUG | INFO | WARNING
+    format: log                    # log | csv
+    level: INFO                    # DEBUG | INFO | WARNING
     console: true
 
   data:
     enabled: true
-    format: csv           # csv | hdf5
+    format: csv                    # csv | hdf5
     save_truth: true
     save_raw_imu: true
     save_calibrated_imu: true
-    save_filter_output: true
+    save_estimation_results: true
 
   fig:
     enabled: true
-    format: png # png | jpg | svg
+    format: png                    # png | jpg | svg
     dpi: 150
     plots:
-      - attitude_comparison    # roll/pitch/yaw timeseries comparison
-      - attitude_error         # noise with each filter
-      - allan_variance         # noise analysis curve
-      - mag_calibration        # ellipsoid fitting 결과 시각화
-      - convergence            # initial convergence velocity comparison
-      - disturbance_response   # disturbance 구간 확대 비교
-      - kalman_filter_diagnostics # kalman gain norm, residual analysis
+      - attitude_comparison        # roll/pitch/yaw 시계열 비교
+      - attitude_error             # 필터별 오차 시계열
+      - allan_variance             # 노이즈 분석 곡선
+      - mag_calibration            # ellipsoid fitting 시각화
+      - convergence                # 초기 수렴 속도 비교
+      - disturbance_response       # 외란 구간 확대 비교
+      - kalman_filter_diagnostics  # Kalman gain, residual 분석
+      - bias_estimation            # 바이어스 추정 결과
+      - fft_analysis               # 주파수 도메인 노이즈 특성
+      - freq_sweep_error           # 주파수별 RMSE 곡선
+      - gt_estimation_overlay      # GT vs 추정치 오버레이
+      - scatter_plots              # 추정치 vs 진짜값 산점도
 
   report:
     enabled: true
-    format: markdown # markdown | html | json
+    format: markdown               # markdown | html | json
     include_figures: true
     include_tables: true

@@ -45,7 +45,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def cli_main(argv: Sequence[str] | None = None) -> None:
     args = _build_parser().parse_args(argv)
-    
+
     run(
         config_path=args.config,
         dry_run=args.dry_run,

@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from ahrs.core.trajectory.base import TrajectoryBase, TruthData
+from ahrs.core.trajectory.base import BaseTrajectory, TruthData
 
-class StaticTrajectory(TrajectoryBase):
+class StaticTrajectory(BaseTrajectory):
     """완전 정지 trajectory."""
 
     def generate(self, dt: float, duration: float,

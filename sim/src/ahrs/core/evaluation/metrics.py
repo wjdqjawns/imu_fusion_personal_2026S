@@ -19,8 +19,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ahrs.core.orientation.transforms import Transforms
-
+from ahrs.utils.transforms import Transforms
 
 def euler_rmse(euler_est: np.ndarray, euler_true: np.ndarray) -> np.ndarray:
     """

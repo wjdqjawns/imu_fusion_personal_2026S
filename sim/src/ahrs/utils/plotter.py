@@ -4,7 +4,7 @@ Author: Beomjun Chung
 Updated: 2026-05-18
 
 Description:
-  Matplotlib + SciencePlots 래퍼 — IEEE/Nature 스타일 그래프 생성
+    Matplotlib + SciencePlots 래퍼 — IEEE/Nature 스타일 그래프 생성
 
     purpose:
         시뮬레이션 결과를 학술지(IEEE, Nature) 스타일로 출력.
@@ -44,6 +44,9 @@ FILTER_COLORS = {
     "mahony":        "#D55E00",
     "madgwick":      "#009E73",
     "ekf":           "#CC79A7",
+    "ekf_euler":     "#E69F00",
+    "ekf_quat":      "#CC79A7",
+    "eskf":          "#56B4E9",
 }
 
 FILTER_LABELS = {
@@ -51,14 +54,26 @@ FILTER_LABELS = {
     "complementary": "Complementary",
     "mahony":        "Mahony",
     "madgwick":      "Madgwick",
-    "ekf":           "EKF",
+    "ekf":           "EKF (Quat)",
+    "ekf_euler":     "EKF (Euler)",
+    "ekf_quat":      "EKF (Quat)",
+    "eskf":          "ESKF",
+}
+
+FILTER_LINESTYLES = {
+    "complementary": (0, (5, 1)),        # loosely dashed
+    "mahony":        (0, (3, 1, 1, 1)), # dash-dot
+    "madgwick":      (0, (1, 1)),        # dotted
+    "ekf":           "-",
+    "ekf_euler":     "--",
+    "ekf_quat":      "-.",
+    "eskf":          "-",
 }
 
 AXIS_LABELS = ["Roll", "Pitch", "Yaw"]
 
 @contextmanager
 def science_style(style: list[str] | str):
-    """SciencePlots 스타일 컨텍스트 매니저."""
     if isinstance(style, str):
         style = [style]
     if not _HAS_SCIENCEPLOTS and any(s in style for s in ["science", "ieee", "nature"]):
@@ -88,54 +103,59 @@ class Plotter:
         self.dpi   = int(dpi)
         self.fmt   = fmt
 
-    # ── 자세 비교: ground truth + 필터 추정값 ────────────────────────────────
-
+    # --- compare path estimation results: ground truth + estimation value ---
     def attitude_comparison(
         self,
         t: np.ndarray,
         truth_euler_deg: np.ndarray,
-        filter_results: dict[str, np.ndarray],
+        estimation_results: dict[str, np.ndarray],
         out_path: Path | None = None,
         disturbance_spans: list[tuple[float, float]] | None = None,
+        traj_type: str = "",
     ) -> plt.Figure:
         """
-        Roll / Pitch / Yaw 시계열 비교 플롯.
+        roll, pitch, yaw angle in world frame comparison.
 
         Args:
             t:                 시간 [s], shape (N,)
             truth_euler_deg:   GT Euler [deg], shape (N, 3) [roll, pitch, yaw]
-            filter_results:    {filter_name: euler_deg (N,3)}
-            out_path:          저장 경로. None이면 저장 안 함.
-            disturbance_spans: [(t_start, t_end), ...] 외란 구간 음영 표시
+            estimation_results: {filter_name: euler_deg (N,3)}
+            traj_type:         궤적 종류 문자열 (제목에 표시)
         """
         with science_style(self.style):
-            fig, axes = plt.subplots(3, 1, figsize=(6.5, 5.5), sharex=True)
+            fig, axes = plt.subplots(3, 1, figsize=(7.0, 6.0), sharex=True)
 
             for i, ax in enumerate(axes):
-                # Ground truth
+                # Ground truth — 굵고 뚜렷하게
                 ax.plot(t, truth_euler_deg[:, i],
                         color=FILTER_COLORS["truth"],
-                        linestyle="--", linewidth=0.8,
+                        linestyle="--", linewidth=1.6,
                         label=FILTER_LABELS["truth"], zorder=10)
 
-                # 필터 추정값
-                for name, euler in filter_results.items():
+                # 필터별 추정 결과 — 색상 + 선 스타일 조합
+                for name, euler in estimation_results.items():
                     ax.plot(t, euler[:, i],
-                            color=FILTER_COLORS.get(name, None),
-                            linewidth=0.8,
+                            color=FILTER_COLORS.get(name, "#888888"),
+                            linestyle=FILTER_LINESTYLES.get(name, "-"),
+                            linewidth=1.0,
                             label=FILTER_LABELS.get(name, name))
 
                 # 외란 구간 음영
                 if disturbance_spans:
-                    for t0, t1 in disturbance_spans:
-                        ax.axvspan(t0, t1, alpha=0.15, color="red", linewidth=0)
+                    for k, (t0, t1) in enumerate(disturbance_spans):
+                        ax.axvspan(t0, t1, alpha=0.12, color="red", linewidth=0,
+                                   label="Disturbance" if (i == 0 and k == 0) else "")
 
-                ax.set_ylabel(f"{AXIS_LABELS[i]} [°]")
-                ax.grid(True)
+                ax.set_ylabel(f"{AXIS_LABELS[i]} [°]", fontsize=8)
+                ax.grid(True, alpha=0.35)
 
             axes[-1].set_xlabel("Time [s]")
-            axes[0].legend(loc="upper right", fontsize=6, ncol=2)
-            fig.suptitle("Attitude Comparison", y=1.01)
+            axes[0].legend(loc="upper right", fontsize=6, ncol=3,
+                           framealpha=0.85)
+            title = "Attitude Comparison"
+            if traj_type:
+                title += f"  [{traj_type}]"
+            fig.suptitle(title, y=1.01)
             fig.tight_layout()
 
             if out_path:
@@ -143,8 +163,7 @@ class Plotter:
 
         return fig
 
-    # ── 자세 오차: 각 필터별 ─────────────────────────────────────────────────
-
+    # --- attitude estimation error (based on world frame)---
     def attitude_error(
         self,
         t: np.ndarray,
@@ -153,7 +172,7 @@ class Plotter:
         disturbance_spans: list[tuple[float, float]] | None = None,
     ) -> plt.Figure:
         """
-        Roll / Pitch / Yaw 오차 시계열.
+        roll, pitch, yaw angle estimation error each estimator.
 
         Args:
             filter_errors: {filter_name: euler_error_deg (N,3)}
@@ -186,8 +205,7 @@ class Plotter:
 
         return fig
 
-    # ── Geodesic 오차 ────────────────────────────────────────────────────────
-
+    # --- Geodesic Error ---
     def geodesic_error(
         self,
         t: np.ndarray,
@@ -199,6 +217,7 @@ class Plotter:
         Geodesic 오차 시계열 [deg].
 
         Args:
+
             geo_errors: {filter_name: error_deg (N,)}
         """
         with science_style(self.style):
@@ -226,15 +245,14 @@ class Plotter:
 
         return fig
 
-    # ── RMSE 바 차트 ────────────────────────────────────────────────────────
-
+    # --- estimation rmse chart ---
     def rmse_bar(
         self,
         rmse_table: dict[str, dict[str, float]],
         out_path: Path | None = None,
     ) -> plt.Figure:
         """
-        필터별 RMSE 바 차트.
+        rmse chart each estimation results.
 
         Args:
             rmse_table: {filter_name: {roll, pitch, yaw, geodesic} [deg]}
@@ -265,107 +283,77 @@ class Plotter:
 
         return fig
 
-    # ── 3D trajectory overlay ────────────────────────────────────────────────
+    # ── 공통 헬퍼 ─────────────────────────────────────────────────────────────
+    @staticmethod
+    def _body_z(euler_deg: np.ndarray) -> np.ndarray:
+        """Euler [deg] (N,3) → body Z-axis 방향 (N,3), world frame."""
+        from ahrs.utils.transforms import Transforms
+        out = np.empty_like(euler_deg)
+        for i, (r, p, y) in enumerate(euler_deg):
+            R = Transforms.euler_to_dcm(np.radians(r), np.radians(p), np.radians(y))
+            out[i] = R[:, 2]
+        return out
 
-    def trajectory_3d(
+    @staticmethod
+    def _sphere_wireframe(ax, alpha: float = 0.04, n_lines: int = 18):
+        """단위 구 와이어프레임. alpha를 낮춰 궤적이 앞에 보이게."""
+        u = np.linspace(0, 2 * np.pi, n_lines)
+        v = np.linspace(0, np.pi, n_lines // 2)
+        xs = np.outer(np.cos(u), np.sin(v))
+        ys = np.outer(np.sin(u), np.sin(v))
+        zs = np.outer(np.ones_like(u), np.cos(v))
+        ax.plot_wireframe(xs, ys, zs, color="#aaaaaa", alpha=alpha,
+                          linewidth=0.25, zorder=0)
+
+    # --- 3D Euler Angle Trajectory ---
+    def euler_trajectory_3d(
         self,
         truth_euler_deg: np.ndarray,
         filter_results: dict[str, np.ndarray],
+        traj_type: str = "",
         out_path: Path | None = None,
     ) -> plt.Figure:
         """
-        2-panel: (left) Roll-Pitch-Yaw 3D, (right) body-Z on unit sphere.
+        Roll-Pitch-Yaw 3D 궤적 단독 그래프.
 
         Args:
-            truth_euler_deg:  GT Euler [deg], shape (N, 3)  [roll, pitch, yaw]
-            filter_results:   {filter_name: euler_deg (N, 3)}
+            truth_euler_deg: GT Euler [deg], shape (N, 3)
+            filter_results:  {filter_name: euler_deg (N, 3)}
+            traj_type:       궤적 종류 문자열 (제목 표시용)
         """
-        from ahrs.core.orientation.transforms import Transforms
-
-        def _body_z(euler_deg: np.ndarray) -> np.ndarray:
-            """Euler angles [deg] (N,3) -> body Z-axis in world frame (N,3)."""
-            out = np.empty_like(euler_deg)
-            for i, (r, p, y) in enumerate(euler_deg):
-                R = Transforms.euler_to_dcm(
-                    np.radians(r), np.radians(p), np.radians(y)
-                )
-                out[i] = R[:, 2]
-            return out
-
-        def _sphere_wireframe(ax, alpha: float = 0.08):
-            u = np.linspace(0, 2 * np.pi, 30)
-            v = np.linspace(0, np.pi, 20)
-            xs = np.outer(np.cos(u), np.sin(v))
-            ys = np.outer(np.sin(u), np.sin(v))
-            zs = np.outer(np.ones_like(u), np.cos(v))
-            ax.plot_wireframe(xs, ys, zs, color="gray", alpha=alpha, linewidth=0.3, zorder=0)
-
         with science_style(self.style):
-            fig = plt.figure(figsize=(9, 4.0))
-            ax_euler = fig.add_subplot(121, projection="3d")
-            ax_sph   = fig.add_subplot(122, projection="3d")
+            fig = plt.figure(figsize=(6.0, 5.5))
+            ax = fig.add_subplot(111, projection="3d")
 
-            # ── Left: Euler angle 3D ─────────────────────────────────────────
-            ax_euler.plot(*truth_euler_deg.T,
-                          color=FILTER_COLORS["truth"],
-                          linestyle="--", linewidth=0.8,
-                          label=FILTER_LABELS["truth"], zorder=10)
-            for name, euler in filter_results.items():
-                ax_euler.plot(*euler.T,
-                              color=FILTER_COLORS.get(name, "#888888"),
-                              linewidth=0.6,
-                              label=FILTER_LABELS.get(name, name))
-
-            ax_euler.set_xlabel("Roll [deg]",  fontsize=7, labelpad=4)
-            ax_euler.set_ylabel("Pitch [deg]", fontsize=7, labelpad=4)
-            ax_euler.set_zlabel("Yaw [deg]",   fontsize=7, labelpad=8)
-            ax_euler.zaxis.set_rotate_label(False)
-            ax_euler.view_init(elev=20, azim=45)
-            ax_euler.tick_params(labelsize=5)
-            ax_euler.set_title("Euler Angle Trajectory", fontsize=8, pad=4)
-            ax_euler.legend(fontsize=5, loc="upper left")
-
-            # ── Right: body-Z on unit sphere ─────────────────────────────────
-            _sphere_wireframe(ax_sph)
-
-            # NED axis indicators (N=+x red, E=+y green, D=+z blue)
-            for vec, lbl, col in [
-                ([1, 0, 0], "N", "#E41A1C"),
-                ([0, 1, 0], "E", "#4DAF4A"),
-                ([0, 0, 1], "D", "#377EB8"),
-            ]:
-                ax_sph.quiver(0, 0, 0, *vec,
-                              length=1.3, arrow_length_ratio=0.15,
-                              color=col, linewidth=1.0, zorder=5)
-                ax_sph.text(vec[0]*1.45, vec[1]*1.45, vec[2]*1.45,
-                            lbl, fontsize=6, color=col,
-                            ha="center", va="center")
-
-            bz_truth = _body_z(truth_euler_deg)
-            ax_sph.plot(*bz_truth.T,
-                        color=FILTER_COLORS["truth"],
-                        linestyle="--", linewidth=0.9,
-                        label=FILTER_LABELS["truth"], zorder=10)
+            # GT — 굵고 뚜렷하게
+            ax.plot(*truth_euler_deg.T,
+                    color=FILTER_COLORS["truth"],
+                    linestyle="--", linewidth=2.0,
+                    label=FILTER_LABELS["truth"], zorder=10)
+            # 시작점 / 끝점 마커
+            ax.scatter(*truth_euler_deg[0],  color="lime",  s=60,
+                       marker="o", zorder=20, label="Start")
+            ax.scatter(*truth_euler_deg[-1], color="red",   s=60,
+                       marker="*", zorder=20, label="End")
 
             for name, euler in filter_results.items():
-                bz = _body_z(euler)
-                ax_sph.plot(*bz.T,
-                            color=FILTER_COLORS.get(name, "#888888"),
-                            linewidth=0.6,
-                            label=FILTER_LABELS.get(name, name))
+                ax.plot(*euler.T,
+                        color=FILTER_COLORS.get(name, "#888888"),
+                        linestyle=FILTER_LINESTYLES.get(name, "-"),
+                        linewidth=1.0, alpha=0.85,
+                        label=FILTER_LABELS.get(name, name))
 
-            ax_sph.set_xlim(-1.2, 1.2)
-            ax_sph.set_ylim(-1.2, 1.2)
-            ax_sph.set_zlim(-1.2, 1.2)
-            ax_sph.set_xlabel("N (x)",  fontsize=7, labelpad=4)
-            ax_sph.set_ylabel("E (y)",  fontsize=7, labelpad=4)
-            ax_sph.set_zlabel("D (z)",  fontsize=7, labelpad=8)
-            ax_sph.zaxis.set_rotate_label(False)
-            ax_sph.view_init(elev=20, azim=45)
-            ax_sph.tick_params(labelsize=5)
-            ax_sph.set_title("Body Z-axis on Unit Sphere (NED)", fontsize=8, pad=4)
-            ax_sph.legend(fontsize=5, loc="upper left")
-
+            ax.set_xlabel("Roll [°]",  fontsize=7, labelpad=4)
+            ax.set_ylabel("Pitch [°]", fontsize=7, labelpad=4)
+            ax.set_zlabel("Yaw [°]",   fontsize=7, labelpad=8)
+            ax.zaxis.set_rotate_label(False)
+            ax.view_init(elev=22, azim=50)
+            ax.tick_params(labelsize=5)
+            title = "Euler Angle Trajectory"
+            if traj_type:
+                title += f"\n[{traj_type}]"
+            ax.set_title(title, fontsize=8, pad=6)
+            ax.legend(fontsize=5, loc="upper left", framealpha=0.8)
             fig.tight_layout()
 
             if out_path:
@@ -373,8 +361,116 @@ class Plotter:
 
         return fig
 
-    # ── Allan variance ────────────────────────────────────────────────────────
+    # --- Body Z-axis on Unit Sphere ---
+    def body_axis_sphere(
+        self,
+        truth_euler_deg: np.ndarray,
+        filter_results: dict[str, np.ndarray],
+        traj_type: str = "",
+        out_path: Path | None = None,
+    ) -> plt.Figure:
+        """
+        Body Z-축 방향의 단위 구면 궤적.
+        GT는 시간 순서를 색상(viridis)으로 표현.
 
+        Args:
+            truth_euler_deg: GT Euler [deg], shape (N, 3)
+            filter_results:  {filter_name: euler_deg (N, 3)}
+            traj_type:       궤적 종류 문자열 (제목 표시용)
+        """
+        bz_truth = self._body_z(truth_euler_deg)
+        n = len(bz_truth)
+
+        with science_style(self.style):
+            fig = plt.figure(figsize=(6.5, 6.0))
+            ax = fig.add_subplot(111, projection="3d")
+
+            # 구면 와이어프레임 (매우 연하게)
+            self._sphere_wireframe(ax, alpha=0.04)
+
+            # NED 축 화살표
+            for vec, lbl, col in [
+                ([1, 0, 0], "N", "#E41A1C"),
+                ([0, 1, 0], "E", "#4DAF4A"),
+                ([0, 0, 1], "D", "#377EB8"),
+            ]:
+                ax.quiver(0, 0, 0, *vec,
+                          length=1.25, arrow_length_ratio=0.18,
+                          color=col, linewidth=1.5, zorder=5)
+                ax.text(vec[0]*1.38, vec[1]*1.38, vec[2]*1.38,
+                        lbl, fontsize=8, fontweight="bold", color=col,
+                        ha="center", va="center")
+
+            # GT 궤적 — 시간 진행을 viridis 색으로 표현 (두꺼운 선)
+            cmap = plt.cm.viridis
+            colors_t = cmap(np.linspace(0, 1, n))
+            for i in range(n - 1):
+                ax.plot(bz_truth[i:i+2, 0],
+                        bz_truth[i:i+2, 1],
+                        bz_truth[i:i+2, 2],
+                        color=colors_t[i], linewidth=2.0, alpha=0.9, zorder=10)
+
+            # GT 시작 / 끝 마커
+            ax.scatter(*bz_truth[0],  color=cmap(0.0), s=80,
+                       marker="o", edgecolors="k", linewidths=0.8,
+                       zorder=20, label="GT Start")
+            ax.scatter(*bz_truth[-1], color=cmap(1.0), s=80,
+                       marker="*", edgecolors="k", linewidths=0.8,
+                       zorder=20, label="GT End")
+
+            # 필터 추정 궤적
+            for name, euler in filter_results.items():
+                bz = self._body_z(euler)
+                ax.plot(*bz.T,
+                        color=FILTER_COLORS.get(name, "#888888"),
+                        linestyle=FILTER_LINESTYLES.get(name, "-"),
+                        linewidth=1.3, alpha=0.75,
+                        label=FILTER_LABELS.get(name, name),
+                        zorder=8)
+
+            # 색상바 (GT 시간 진행 표시)
+            sm = plt.cm.ScalarMappable(cmap=cmap,
+                                        norm=plt.Normalize(0, 1))
+            sm.set_array([])
+            cbar = fig.colorbar(sm, ax=ax, pad=0.1, shrink=0.55,
+                                orientation="vertical")
+            cbar.set_label("GT time (0→1)", fontsize=7)
+            cbar.ax.tick_params(labelsize=6)
+
+            ax.set_xlim(-1.15, 1.15)
+            ax.set_ylim(-1.15, 1.15)
+            ax.set_zlim(-1.15, 1.15)
+            ax.set_xlabel("N (x)", fontsize=7, labelpad=4)
+            ax.set_ylabel("E (y)", fontsize=7, labelpad=4)
+            ax.set_zlabel("D (z)", fontsize=7, labelpad=8)
+            ax.zaxis.set_rotate_label(False)
+            ax.view_init(elev=25, azim=40)
+            ax.tick_params(labelsize=5)
+            title = "Body Z-axis on Unit Sphere (NED)"
+            if traj_type:
+                title += f"\n[{traj_type}]"
+            ax.set_title(title, fontsize=8, pad=6)
+            ax.legend(fontsize=5, loc="upper left", framealpha=0.85,
+                      ncol=2)
+            fig.tight_layout()
+
+            if out_path:
+                fig.savefig(out_path, dpi=self.dpi, bbox_inches="tight")
+
+        return fig
+
+    # 하위 호환: 기존 코드가 trajectory_3d를 호출할 경우 euler 3D만 저장
+    def trajectory_3d(
+        self,
+        truth_euler_deg: np.ndarray,
+        filter_results: dict[str, np.ndarray],
+        traj_type: str = "",
+        out_path: Path | None = None,
+    ) -> plt.Figure:
+        return self.euler_trajectory_3d(truth_euler_deg, filter_results,
+                                        traj_type=traj_type, out_path=out_path)
+
+    # --- Allan variance ---
     def allan_variance(
         self,
         tau: np.ndarray,
@@ -383,7 +479,7 @@ class Plotter:
         out_path: Path | None = None,
     ) -> plt.Figure:
         """
-        Allan deviation 곡선. log-log 스케일.
+        Allan deviation 곡선. log-log scale.
 
         Args:
             tau:          [s], shape (M,)
@@ -404,7 +500,7 @@ class Plotter:
                               linewidth=0.9, label=labels[i])
                 ax.legend(fontsize=7)
 
-            # 기울기 가이드라인
+            # slope guideline
             tau_mid = np.sqrt(tau[0] * tau[-1])
             adev_mid = np.nanmedian(adev) if adev.ndim == 1 else np.nanmedian(adev[:, 0])
             for slope, label in [(-0.5, "−½ ARW"), (0.0, "0  BI"), (0.5, "+½ RRW")]:
@@ -422,8 +518,7 @@ class Plotter:
 
         return fig
 
-    # ── 수렴 비교 ─────────────────────────────────────────────────────────────
-
+    # --- convergence comparison ---
     def convergence(
         self,
         t: np.ndarray,
@@ -465,7 +560,6 @@ class Plotter:
         return fig
 
     # ── PSD (Welch) ───────────────────────────────────────────────────────────
-
     def psd(
         self,
         data: np.ndarray,
@@ -517,8 +611,7 @@ class Plotter:
 
         return fig
 
-    # ── Mag hard/soft iron 보정 비교 ──────────────────────────────────────────
-
+    # ── magnetometer hard/soft iron distortion correction comparison ---
     def mag_sphere(
         self,
         mag_raw: np.ndarray,
@@ -657,14 +750,171 @@ class Plotter:
                 fig.savefig(out_path, dpi=self.dpi, bbox_inches="tight")
 
         return fig
+    
+    # ── FFT spectrum ───────────────────────────────────────────────────────────
+    def fft_spectrum(
+        self,
+        data: np.ndarray,
+        fs: float,
+        title: str = "FFT Spectrum",
+        axis_labels: list[str] | None = None,
+        unit_label: str = "amplitude",
+        out_path: Path | None = None,
+    ) -> plt.Figure:
+        """
+        단측 FFT 스펙트럼 (semilogy).
 
-    # ── 저장 헬퍼 ─────────────────────────────────────────────────────────────
+        Args:
+            data:   (N,) 또는 (N, 3) 시계열
+            fs:     샘플링 주파수 [Hz]
+        """
+        if data.ndim == 1:
+            data = data[:, np.newaxis]
+        n_axes = data.shape[1]
+        n      = data.shape[0]
+        freqs  = np.fft.rfftfreq(n, d=1.0 / fs)
+        colors = ["#0072B2", "#D55E00", "#009E73"]
+        labels = (axis_labels or ["x", "y", "z"])[:n_axes]
 
+        with science_style(self.style):
+            fig, axes = plt.subplots(n_axes, 1,
+                                     figsize=(5.5, 1.9 * n_axes), sharex=True)
+            if n_axes == 1:
+                axes = [axes]
+
+            for i, ax in enumerate(axes):
+                mag = np.abs(np.fft.rfft(data[:, i])) / n
+                ax.semilogy(freqs[1:], mag[1:],
+                            color=colors[i % len(colors)],
+                            linewidth=0.7, label=labels[i])
+                ax.set_ylabel(f"|FFT| [{unit_label}]", fontsize=6)
+                ax.legend(fontsize=6, loc="upper right")
+                ax.grid(True, which="both", alpha=0.3)
+
+            axes[-1].set_xlabel("Frequency [Hz]")
+            fig.suptitle(title, y=1.01)
+            fig.tight_layout()
+
+            if out_path:
+                fig.savefig(out_path, dpi=self.dpi, bbox_inches="tight")
+
+        return fig
+
+    # ── Frequency sweep error ──────────────────────────────────────────────────
+    def freq_sweep_error(
+        self,
+        freq_rmse: dict[float, dict[str, float]],
+        out_path: Path | None = None,
+    ) -> plt.Figure:
+        """
+        주파수별 Geodesic RMSE 곡선.
+
+        Args:
+            freq_rmse: {freq_hz: {filter_name: geodesic_rmse_deg}}
+        """
+        freqs   = sorted(freq_rmse.keys())
+        filters = list(next(iter(freq_rmse.values())).keys())
+
+        with science_style(self.style):
+            fig, ax = plt.subplots(figsize=(5.5, 3.5))
+
+            for name in filters:
+                vals = [freq_rmse[f].get(name, float("nan")) for f in freqs]
+                ax.plot(freqs, vals,
+                        color=FILTER_COLORS.get(name, None),
+                        marker="o", markersize=3.5, linewidth=0.9,
+                        label=FILTER_LABELS.get(name, name))
+
+            ax.set_xscale("log")
+            ax.set_xlabel("Frequency [Hz]")
+            ax.set_ylabel("Geodesic RMSE [°]")
+            ax.legend(fontsize=7)
+            ax.grid(True, which="both", alpha=0.3)
+            fig.suptitle("Frequency Sweep — Filter Error vs. Input Frequency", y=1.01)
+            fig.tight_layout()
+
+            if out_path:
+                fig.savefig(out_path, dpi=self.dpi, bbox_inches="tight")
+
+        return fig
+
+    # ── GT vs Estimated scatter ────────────────────────────────────────────────
+    def gt_vs_est_scatter(
+        self,
+        truth_euler_deg: np.ndarray,
+        filter_euler: dict[str, np.ndarray],
+        out_path: Path | None = None,
+        subsample: int = 10,
+    ) -> plt.Figure:
+        """
+        GT vs. Estimated angle 산점도 (roll / pitch / yaw 분리).
+
+        Args:
+            truth_euler_deg: (N, 3) [deg]
+            filter_euler:    {name: (N, 3) [deg]}
+            subsample:       시각화 속도를 위해 N점 중 1/subsample만 사용
+        """
+        idx = np.arange(0, len(truth_euler_deg), max(1, subsample))
+        gt  = truth_euler_deg[idx]
+
+        with science_style(self.style):
+            n_filt = len(filter_euler)
+            fig, axes = plt.subplots(3, n_filt,
+                                     figsize=(3.2 * n_filt, 7.5),
+                                     sharex="row", sharey="row")
+            if n_filt == 1:
+                axes = np.array(axes).reshape(3, 1)
+
+            for j, (name, euler) in enumerate(filter_euler.items()):
+                est = euler[idx]
+                for i, axis_lbl in enumerate(AXIS_LABELS):
+                    ax = axes[i, j]
+                    lo = min(gt[:, i].min(), est[:, i].min())
+                    hi = max(gt[:, i].max(), est[:, i].max())
+                    margin = (hi - lo) * 0.05 + 1.0
+                    diag = [lo - margin, hi + margin]
+
+                    ax.plot(diag, diag, "k--", linewidth=0.7, alpha=0.5, zorder=0,
+                            label="Ideal (y=x)")
+                    ax.scatter(gt[:, i], est[:, i],
+                               c=FILTER_COLORS.get(name, "#888888"),
+                               s=2, alpha=0.3, linewidths=0, zorder=1)
+
+                    if i == 0:
+                        ax.set_title(FILTER_LABELS.get(name, name), fontsize=8)
+                    if j == 0:
+                        ax.set_ylabel(f"Est. {axis_lbl} [°]", fontsize=7)
+                    ax.set_xlabel(f"GT {axis_lbl} [°]", fontsize=7)
+                    ax.set_xlim(diag)
+                    ax.set_ylim(diag)
+                    ax.set_aspect("equal", adjustable="box")
+                    ax.grid(True, alpha=0.25)
+                    ax.tick_params(labelsize=5)
+
+            fig.suptitle("GT vs. Estimated Attitude", y=1.01)
+            fig.tight_layout()
+
+            if out_path:
+                fig.savefig(out_path, dpi=self.dpi, bbox_inches="tight")
+
+        return fig
+
+    # --- save helper ---
     def savefig(self, fig: plt.Figure, path: Path) -> None:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(path, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)
+
+    @classmethod
+    def from_config(cls, cfg: dict) -> "Plotter":
+        """cfg["export"]["fig"] 섹션에서 Plotter 인스턴스 생성."""
+        export_cfg = cfg.get("export") or cfg.get("output", {})
+        fig_cfg = export_cfg.get("fig", {})
+        return cls(
+            dpi=int(fig_cfg.get("dpi", 150)),
+            fmt=fig_cfg.get("format", "png"),
+        )
 
     @classmethod
     def for_ieee(cls, dpi: int = 300) -> "Plotter":

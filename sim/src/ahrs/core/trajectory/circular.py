@@ -4,10 +4,10 @@ Author: Beomjun Chung
 Updated: 2026-05-18
 
 Description:
-  원형 선회 trajectory — yaw rate 일정, 선택적 roll/pitch 유지
+    circular trajectory — yaw rate constant, 선택적 roll/pitch 유지
 
     purpose:
-        일정 yaw rate로 수평 또는 경사 선회 시뮬레이션.
+        constant yaw rate로 수평 또는 경사 선회 시뮬레이션.
         complementary/Mahony/Madgwick/EKF 필터의 yaw 추정 성능 검증.
 
     Notes:
@@ -21,10 +21,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from ahrs.core.trajectory.base import TrajectoryBase, TruthData
-from ahrs.core.orientation.transforms import Transforms
+from ahrs.core.trajectory.base import BaseTrajectory, TruthData
+from ahrs.utils.transforms import Transforms
 
-class CircularTrajectory(TrajectoryBase):
+class CircularTrajectory(BaseTrajectory):
     def __init__(self, angular_velocity_deg_s: float = 20.0,
                  roll_deg: float = 0.0, pitch_deg: float = 0.0):
         self._yaw_rate = np.deg2rad(angular_velocity_deg_s)  # [rad/s]

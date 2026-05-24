@@ -20,11 +20,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from ahrs.core.trajectory.base import TrajectoryBase, TruthData
-from ahrs.core.orientation.transforms import Transforms
+from ahrs.core.trajectory.base import BaseTrajectory, TruthData
+from ahrs.utils.transforms import Transforms
 
 
-class SphericalTrajectory(TrajectoryBase):
+class SphericalTrajectory(BaseTrajectory):
     """구형 회전 trajectory — 자기계 캘리브레이션용."""
 
     def __init__(self, rate_deg_s: float = 30.0):

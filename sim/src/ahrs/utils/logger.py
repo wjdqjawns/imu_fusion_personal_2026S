@@ -1,116 +1,113 @@
-#*************************************************************************/
-# File Name: ./src/utils/logger.py
-# Author: Beomjun Chung
-# Updated: 2026-03-22
-#
-# Description:
-#   Logger setup for ahrs sim runtime.
-#*************************************************************************/
+"""
+File Name: ./src/ahrs/utils/logger.py
+Author: Beomjun Chung
+Updated: 2026-05-25
+
+Description:
+    Logger setup for ahrs sim runtime.
+
+    Usage:
+        # main entry point (once):
+        from ahrs.utils.logger import setup_logging
+        setup_logging(log_dir=ctx.log_dir, level="INFO", console=True)
+
+        # any other module:
+        from ahrs.utils.logger import get_logger
+        logger = get_logger(__name__)   # → ahrs_sim.<module>
+"""
 
 from __future__ import annotations
 
 import logging
-from logging.handlers import MemoryHandler
-from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 ROOT_LOGGER_NAME = "ahrs_sim"
-LOGGER_FORMAT = "[%(levelname)s] %(message)s"
 
 _LEVEL_MAP: dict[str, int] = {
-    "DEBUG": logging.DEBUG,
-    "INFO": logging.INFO,
-    "WARNING": logging.WARNING,
-    "ERROR": logging.ERROR,
+    "DEBUG":    logging.DEBUG,
+    "INFO":     logging.INFO,
+    "WARNING":  logging.WARNING,
+    "ERROR":    logging.ERROR,
     "CRITICAL": logging.CRITICAL,
 }
 
-def _resolve_log_file_path(
-    logger_name: str,
-    config: dict[str, Any],
-    start_time: datetime | None = None,
-) -> Path | None:
-    if start_time is None:
-        return None
+_CONSOLE_FMT = "[%(levelname)s][%(name)s] %(message)s"
+_FILE_FMT    = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+_CSV_FMT     = "%(asctime)s,%(levelname)s,%(name)s,%(message)s"
+_DATE_FMT    = "%Y-%m-%d %H:%M:%S"
 
-    active_sim = config["active_sim"]
-    common_cfg = config["common"]
-    simulation_cfg = config["simulation"][active_sim]
-    
-    export_dir = simulation_cfg["export_dir"]
-    export_root = export_dir["root"]
-    export_folders = export_dir["folders"]
 
-    log_dir = Path(export_root) / "log" if "log" in export_folders else export_root
+def get_logger(name: str, level: str = "INFO") -> logging.Logger:
+    """
+    Return a child logger under the ahrs_sim root.
 
-    log_pattern = common_cfg["sim_naming"]["output_naming"]["log_pattern"]
-    if not isinstance(log_pattern, str) or not log_pattern.strip():
-        return None
+    Args:
+        name:  Module name (use __name__ or a short label).
+        level: Log level string. Inherits root level if not explicitly set.
 
-    file_name = log_pattern.format(timestamp=start_time.strftime("%Y%m%d_%H%M%S"), sim_name=active_sim, logger_name=logger_name)
-
-    log_file = log_dir / file_name
-
-    return log_file if log_file.suffix in (".log", ".txt") else None
-
-def get_logger(logger_name: str, level: str = "INFO") -> logging.Logger:
+    Returns:
+        logging.Logger namespaced as 'ahrs_sim.<name>'.
+    """
     numeric_level = _LEVEL_MAP.get(level.upper(), logging.INFO)
+    child = logging.getLogger(f"{ROOT_LOGGER_NAME}.{name}")
+    child.setLevel(numeric_level)
+    return child
 
-    sub_logger = logging.getLogger(f"{ROOT_LOGGER_NAME}.{logger_name}")
-    sub_logger.setLevel(numeric_level)
-
-    return sub_logger
 
 def setup_logging(
+    log_dir: Path | str | None = None,
     level: str = "INFO",
-    config: dict[str, Any] | None = None,
-    start_time: datetime | None = None,
+    console: bool = True,
+    fmt: str = "log",
 ) -> logging.Logger:
+    """
+    Configure the ahrs_sim root logger. Call once at program startup.
+
+    All child loggers (get_logger / logging.getLogger("ahrs_sim.*"))
+    propagate to this root and share its handlers automatically.
+
+    Args:
+        log_dir: Directory for the log file. None → file logging disabled.
+        level:   Log level (DEBUG / INFO / WARNING / ERROR).
+        console: Attach a StreamHandler for stdout output.
+        fmt:     'log' → sim.log (human-readable)
+                 'csv' → sim.csv (machine-parseable)
+
+    Returns:
+        Configured ahrs_sim root logger.
+    """
     numeric_level = _LEVEL_MAP.get(level.upper(), logging.INFO)
 
-    logger = logging.getLogger(ROOT_LOGGER_NAME)
-    logger.setLevel(numeric_level)
+    root = logging.getLogger(ROOT_LOGGER_NAME)
+    root.setLevel(numeric_level)
+    root.propagate = False
 
-    if not logger.handlers:
-        stream_formatter = logging.Formatter(LOGGER_FORMAT)
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(numeric_level)
-        stream_handler.setFormatter(stream_formatter)
-        logger.addHandler(stream_handler)
+    # console handler — attach only if not already present
+    has_console = any(
+        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        for h in root.handlers
+    )
+    if console and not has_console:
+        sh = logging.StreamHandler()
+        sh.setLevel(numeric_level)
+        sh.setFormatter(logging.Formatter(_CONSOLE_FMT))
+        root.addHandler(sh)
 
-        buffer_handler = MemoryHandler(capacity=10000, target=None)
-        buffer_handler.setLevel(numeric_level)
-        logger.addHandler(buffer_handler)
+    # file handler — attach only if not already present and log_dir is given
+    has_file = any(isinstance(h, logging.FileHandler) for h in root.handlers)
+    if log_dir is not None and not has_file:
+        log_dir = Path(log_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.propagate = False
-
-    if config is not None and not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
-        log_file = _resolve_log_file_path(
-            logger_name=ROOT_LOGGER_NAME,
-            config=config,
-            start_time=start_time,
-        )
-        if log_file is not None:
-            log_file.parent.mkdir(parents=True, exist_ok=True)
-            file_formatter = logging.Formatter(
-                fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-            file_handler = logging.FileHandler(log_file, encoding="utf-8")
-            file_handler.setLevel(numeric_level)
-            file_handler.setFormatter(file_formatter)
-            logger.addHandler(file_handler)
-
-            for handler in list(logger.handlers):
-                if isinstance(handler, MemoryHandler):
-                    handler.target = file_handler
-                    handler.flush()
-                    logger.removeHandler(handler)
-                    handler.close()
-            logger.info("File logging enabled. Log file: %s", log_file)
+        if fmt == "csv":
+            log_path = log_dir / "sim.csv"
+            formatter = logging.Formatter(_CSV_FMT)
         else:
-            logger.warning("Log file path could not be resolved. File logging disabled.")
+            log_path = log_dir / "sim.log"
+            formatter = logging.Formatter(_FILE_FMT, datefmt=_DATE_FMT)
 
-    logger.info("Logger initialized with log file: %s", log_file)
-    return logger
+        fh = logging.FileHandler(log_path, encoding="utf-8")
+        fh.setLevel(numeric_level)
+        fh.setFormatter(formatter)
+        root.addHandler(fh)
+    return root

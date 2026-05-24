@@ -20,8 +20,7 @@ from __future__ import annotations
 
 import numpy as np
 
-
-class GyroBiasCalibrator:
+class GyroCalibrator:
     """정지 구간 자이로 바이어스 추정."""
 
     def __init__(self):

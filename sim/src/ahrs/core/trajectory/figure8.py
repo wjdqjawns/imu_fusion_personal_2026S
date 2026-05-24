@@ -20,11 +20,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from ahrs.core.trajectory.base import TrajectoryBase, TruthData
-from ahrs.core.orientation.transforms import Transforms
+from ahrs.core.trajectory.base import BaseTrajectory, TruthData
+from ahrs.utils.transforms import Transforms
 
 
-class Figure8Trajectory(TrajectoryBase):
+class Figure8Trajectory(BaseTrajectory):
     """8자 궤도 trajectory."""
 
     def __init__(self, max_tilt_deg: float = 45.0, period_s: float = 8.0):

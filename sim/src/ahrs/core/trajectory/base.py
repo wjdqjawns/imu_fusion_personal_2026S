@@ -34,7 +34,7 @@ class TruthData:
     vel:         np.ndarray   # [m/s],     shape (N, 3)  world frame
     accel_world: np.ndarray   # [m/s²],    shape (N, 3)  world frame (gravity 제외)
 
-class TrajectoryBase(ABC):
+class BaseTrajectory(ABC):
     """모든 trajectory 클래스의 추상 기반."""
 
     @abstractmethod
@@ -59,7 +59,7 @@ class TrajectoryBase(ABC):
     @staticmethod
     def _integrate_q(q: np.ndarray, omega: np.ndarray, dt: float) -> np.ndarray:
         """1차 Euler 쿼터니언 적분. [x,y,z,w] scalar-last."""
-        from ahrs.core.orientation.transforms import Transforms
+        from ahrs.utils.transforms import Transforms
         Omega = np.array([omega[0], omega[1], omega[2], 0.0])
         q_dot = 0.5 * Transforms.quat_mult(q, Omega)
         q_new = q + q_dot * dt

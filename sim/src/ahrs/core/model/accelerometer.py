@@ -100,23 +100,19 @@ class Accelerometer:
         self._bi.reset()
         self._turn_on_bias = self._sample_turn_on_bias()
 
-    def is_dynamic(self, accel_meas: np.ndarray,
-                   gravity: float = 9.80665,
-                   threshold: float = 0.2) -> bool:
+    @staticmethod
+    def is_dynamic(
+        accel_meas: np.ndarray,
+        gravity: float = 9.80665,
+        threshold: float = 0.2,
+    ) -> bool:
         """
-        선형 가속도 외란 감지.
-        필터에서 accel update 억제 여부 결정에 사용.
+        선형 가속도 외란 감지 유틸리티.
 
-        Args:
-            accel_meas: 측정된 가속도 [m/s²]
-            gravity:    기준 중력 크기 [m/s²]
-            threshold:  허용 오차 [g 단위]
-
-        Returns:
-            True if 가속 기동 중 (accel을 중력 기준으로 쓰면 안 됨)
+        필터 내부 또는 분석 코드에서 직접 호출용.
+        (IMUMeasurement에 포함되지 않음 — 필터가 직접 판단)
         """
-        magnitude = np.linalg.norm(accel_meas)
-        return abs(magnitude - gravity) > threshold * gravity
+        return abs(np.linalg.norm(accel_meas) - gravity) > threshold * gravity
 
     # ── private ───────────────────────────────────────────────────────────────
 
