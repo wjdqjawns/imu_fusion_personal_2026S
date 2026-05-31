@@ -2,14 +2,16 @@
 #include <Arduino.h>
 
 // IMU sensor reading (raw or bias-corrected, same layout)
-typedef struct sImuMeasurement{
+typedef struct sImuMeasurement
+{
     float ax, ay, az;   // accelerometer [g]
     float gx, gy, gz;   // gyroscope     [rad/s]
     float mx, my, mz;   // magnetometer  [uT]
 } sImuMeasurement;
 
 // Per-axis bias from calibration
-typedef struct sImuNoise{
+typedef struct sImuNoise
+{
     float ax, ay, az;   // accel bias [g]
     float gx, gy, gz;   // gyro bias  [rad/s]
     float mx, my, mz;   // mag bias   [uT]
@@ -22,21 +24,24 @@ typedef struct sImuNoise{
 
 // Euler angles: ZYX aerospace convention, all in [rad]
 // phi = roll, theta = pitch, psi = yaw
-typedef struct {
+typedef struct sEulerAngle
+{
     float phi;
     float theta;
     float psi;
-} EulerAngle;
+} sEulerAngle;
 
 // Unit quaternion: q = w + xi + yj + zk
-typedef struct {
+typedef struct sQuat
+{
     float w, x, y, z;
-} Quat;
+} sQuat;
 
 // Direction Cosine Matrix: row-major 3x3
 // Access element at row r, col c: R.m[r*3 + c]
-typedef struct {
+typedef struct sDcm
+{
     float m[9];
-} Dcm;
+} sDcm;
 
 static constexpr float PI_F = PI;

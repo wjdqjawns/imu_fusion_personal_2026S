@@ -23,8 +23,19 @@ from ahrs.core.trajectory.base import BaseTrajectory, TruthData
 class StaticTrajectory(BaseTrajectory):
     """완전 정지 trajectory."""
 
-    def generate(self, dt: float, duration: float,
-                 initial_q: np.ndarray | None = None) -> TruthData:
+    def generate(self, dt: float, duration: float, initial_q: np.ndarray | None = None) -> TruthData:
+        if dt <= 0.0:
+            raise ValueError(f"dt must be positive, got {dt}")
+        if duration <= 0.0:
+            raise ValueError(f"duration must be positive, got {duration}")
+
+        n_samples = int(np.ceil(duration / dt))
+        if n_samples > 5_000_000:
+            raise ValueError(
+                f"StaticTrajectory.generate would create {n_samples:,} samples for dt={dt} and duration={duration}. "
+                "Reduce duration or increase dt before generating a static trajectory."
+            )
+
         t = np.arange(0.0, duration, dt)
         n = len(t)
 

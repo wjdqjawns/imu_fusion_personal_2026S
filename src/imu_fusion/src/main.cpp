@@ -79,7 +79,8 @@ static void printEuler(const EulerAngle& e)
 // ===============================
 // IMU data (scaled int)
 // ===============================
-struct ImuMeasurement {
+struct ImuMeasurement
+{
     uint32_t t_ms;
 
     int16_t ax;
@@ -98,7 +99,8 @@ struct ImuMeasurement {
 // ===============================
 // Full frame with sync
 // ===============================
-typedef struct sFrame {
+typedef struct sFrame
+{
     uint16_t header;   // 0xAA55
     uint16_t seq;
     sImuMeasurement data;

@@ -103,6 +103,48 @@ class Plotter:
         self.dpi   = int(dpi)
         self.fmt   = fmt
 
+    # --- raw time series plot ---
+    def time_series(
+        self,
+        t: np.ndarray,
+        data: np.ndarray,
+        title: str = "",
+        axis_labels: list[str] | None = None,
+        out_path: Path | None = None,
+    ) -> plt.Figure:
+        """
+        시계열 플롯 (예: 센서 노이즈).
+
+        Args:
+            t:           시간 [s], shape (N,)
+            data:        시계열 데이터, shape (N,) or (N, 3)
+            title:       그래프 제목
+            axis_labels: 축별 범례 레이블
+        """
+        with science_style(self.style):
+            fig, ax = plt.subplots(figsize=(6.0, 3.5))
+            if data.ndim == 1:
+                ax.plot(t, data, linewidth=0.9)
+            else:
+                colors = ["#0072B2", "#D55E00", "#009E73"]
+                labels = axis_labels or ["x", "y", "z"]
+                for i in range(data.shape[1]):
+                    ax.plot(t, data[:, i],
+                            color=colors[i % len(colors)],
+                            linewidth=0.9, label=labels[i])
+                ax.legend(fontsize=7)
+
+            ax.set_xlabel("Time [s]")
+            ax.set_ylabel("Value")
+            ax.set_title(title)
+            ax.grid(True)
+            fig.tight_layout()
+
+            if out_path:
+                fig.savefig(out_path, dpi=self.dpi, bbox_inches="tight")
+
+        return fig
+
     # --- compare path estimation results: ground truth + estimation value ---
     def attitude_comparison(
         self,

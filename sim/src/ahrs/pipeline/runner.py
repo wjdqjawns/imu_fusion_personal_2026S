@@ -22,22 +22,19 @@ from datetime import datetime
 
 import numpy as np
 
-from ahrs.pipeline.stage.stage_characterization import run_characterization
-from ahrs.pipeline.stage.stage_estimation import run_estimation
-from ahrs.pipeline.stage.stage_report import run_report
-
-from ahrs.core.model.sensor import IMUSensor, GroundTruth
 from ahrs.core.env.environment import Environment
+from ahrs.core.model.sensor import IMUSensor
 from ahrs.utils.configger import load_config
 from ahrs.utils.exporter import build_export
 from ahrs.utils.logger import get_logger, setup_logging
 from ahrs.utils.plotter import Plotter
+# from ahrs.utils.reporter import FilterReport
+from ahrs.pipeline.stage.stage_characterization import run_characterization
+from ahrs.pipeline.stage.stage_estimation import run_estimation
+from ahrs.pipeline.stage.stage_report import run_report
 
 logger = get_logger(__name__)
 
-# ============================================================================
-# Main pipeline runner
-# ============================================================================
 def run(config_path: str | Path, dry_run: bool = False, log_level: str = "INFO") -> None:
     setup_logging(level=log_level, console=True)
     start_time = datetime.now()
@@ -83,17 +80,17 @@ def run(config_path: str | Path, dry_run: bool = False, log_level: str = "INFO")
 
     # Stage 5: Noise characterization
     logger.info("=== Stage 5: Noise Characterization ===")
-    noise_results = run_characterization(cfg, env, sensor, dt, ctx, plotter)
-    logger.info("[STAGE 5] Noise characterization complete")
+    char_results = run_characterization(cfg, env, sensor, dt, ctx, plotter)
+    logger.info("[STAGE 5] Noise characterization complete. Summary saved to %s", ctx.report_dir / "calibration_summary.json")
 
     # Stage 6: State estimation
     logger.info("=== Stage 6: State Estimation ===")
-    # estimation_results = _run_estimation_stage(cfg, env, sensor, dt, duration, ctx, plotter)
+    # est_results = run_estimation(cfg, env, sensor, dt, duration, ctx, plotter)
     logger.info("[STAGE 6] Estimation complete")
 
     # Stage 7: Report
     logger.info("=== Stage 7: Report ===")
-    # export_report(ctx.report_dir, estimation_results, noise_results, cfg)
+    # run_report(cfg, char_results, est_results, ctx, plotter)
     logger.info("[STAGE 7] Report saved | %s", ctx.report_dir)
 
     # Final log + return

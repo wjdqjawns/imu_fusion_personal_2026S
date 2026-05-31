@@ -69,7 +69,7 @@ class FilterReport:
         ]
         for name, res in self._results.items():
             rmse = res.get("rmse_deg", [0.0, 0.0, 0.0])
-            geo  = res.get("geodesic_rmse_deg", 0.0)
+            geo  = res.get("geodesic_rmse", res.get("geodesic_rmse_deg", 0.0))
             lines.append(
                 f"| **{name}** | {rmse[0]:.3f} | {rmse[1]:.3f} | {rmse[2]:.3f} | {geo:.3f} |"
             )
@@ -134,9 +134,9 @@ class FilterReport:
         cfg = self._config
         if not cfg:
             return []
-        imu = cfg.get("imu", {})
-        gyro = imu.get("gyroscope", {})
-        accel = imu.get("accelerometer", {})
+        sensor = cfg.get("sensor", cfg.get("imu", {}))
+        gyro   = sensor.get("gyroscope", {})
+        accel  = sensor.get("accelerometer", {})
         lines = [
             "## 3. Config Summary",
             "",
@@ -167,35 +167,49 @@ class FilterReport:
     
     # --- html format report ---
     def to_html(self) -> str:
-        # For simplicity, we convert the markdown report to HTML using a basic approach.
-        # In a real implementation, you might want to use a library like markdown2 or similar.
-        md = self.to_markdown()
-        html = "<html><head><meta charset='UTF-8'><title>AHRS Filter Comparison Report</title></head><body>"
+        md      = self.to_markdown()
+        parts   = ["<html><head><meta charset='UTF-8'>"
+                   "<title>AHRS Filter Comparison Report</title></head><body>"]
+        in_table = False
+
         for line in md.splitlines():
             if line.startswith("# "):
-                html += f"<h1>{line[2:]}</h1>"
+                if in_table:
+                    parts.append("</table>")
+                    in_table = False
+                parts.append(f"<h1>{line[2:]}</h1>")
             elif line.startswith("## "):
-                html += f"<h2>{line[3:]}</h2>"
+                if in_table:
+                    parts.append("</table>")
+                    in_table = False
+                parts.append(f"<h2>{line[3:]}</h2>")
             elif line.startswith("### "):
-                html += f"<h3>{line[4:]}</h3>"
+                if in_table:
+                    parts.append("</table>")
+                    in_table = False
+                parts.append(f"<h3>{line[4:]}</h3>")
             elif line.startswith("|"):
-                if not hasattr(self, "_in_table"):
-                    html += "<table border='1' cellspacing='0' cellpadding='5'>"
-                    self._in_table = True
-                html += "<tr>" + "".join(f"<th>{cell.strip()}</th>" if i == 0 else f"<td>{cell.strip()}</td>"
-                                         for i, cell in enumerate(line.split("|")[1:-1])) + "</tr>"
+                if not in_table:
+                    parts.append("<table border='1' cellspacing='0' cellpadding='5'>")
+                    in_table = True
+                cells = line.split("|")[1:-1]
+                row   = "".join(f"<td>{c.strip()}</td>" for c in cells)
+                parts.append(f"<tr>{row}</tr>")
             elif line.strip() == "":
-                if hasattr(self, "_in_table"):
-                    html += "</table>"
-                    del self._in_table
-                html += "<br>"
+                if in_table:
+                    parts.append("</table>")
+                    in_table = False
+                parts.append("<br>")
             else:
-                html += f"<p>{line}</p>"
-        if hasattr(self, "_in_table"):
-            html += "</table>"
-            del self._in_table
-        html += "</body></html>"
-        return html
+                if in_table:
+                    parts.append("</table>")
+                    in_table = False
+                parts.append(f"<p>{line}</p>")
+
+        if in_table:
+            parts.append("</table>")
+        parts.append("</body></html>")
+        return "\n".join(parts)
 
     # --- save ---
     def save(self, export_dir: str | Path, format: str = "markdown") -> Path:

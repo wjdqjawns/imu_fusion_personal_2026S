@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import numpy as np
 
-class AllanVariance:
+class AllanVarianceAnalysis:
     def __init__(self, data: np.ndarray, dt: float, n_tau: int = 100):
         """
         Args:
