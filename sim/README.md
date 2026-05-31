@@ -611,6 +611,815 @@ sim/
 ├── CLAUDE.md                   ← 개발 가이드 (AI 협업용)
 ├── requirements.txt
 └── pyproject.toml
+
+├───archive
+│   │   config.yaml
+│   │   
+│   ├───2026-05-18_155300
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260518_155300.json
+│   │           report_20260518_155300.md
+│   │           
+│   ├───2026-05-18_155315
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       
+│   │   └───log
+│   │           noise.log
+│   │           
+│   ├───2026-05-18_160554
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260518_160607.json
+│   │           report_20260518_160607.md
+│   │           
+│   ├───2026-05-18_160702
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260518_160713.json
+│   │           report_20260518_160713.md
+│   │           
+│   ├───2026-05-18_161429
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260518_161441.json
+│   │           report_20260518_161441.md
+│   │           
+│   ├───2026-05-18_165733
+│   │   ├───data
+│   │   │       noise_static.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       
+│   │   └───log
+│   │           sim.log
+│   │           
+│   ├───2026-05-18_170551
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260518_170608.json
+│   │           report_20260518_170608.md
+│   │           
+│   ├───2026-05-19_054352
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260519_054408.json
+│   │           report_20260519_054408.md
+│   │           
+│   ├───2026-05-19_054421
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260519_054433.json
+│   │           report_20260519_054433.md
+│   │           
+│   ├───2026-05-25_020205
+│   │   ├───data
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       
+│   │   └───log
+│   │           sim.log
+│   │           
+│   ├───2026-05-25_020530
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       ekf_euler.csv
+│   │   │       eskf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260525_020617.json
+│   │           report_20260525_020617.md
+│   │           
+│   ├───2026-05-25_020710
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       ekf_euler.csv
+│   │   │       eskf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260525_020727.json
+│   │           report_20260525_020727.md
+│   │           
+│   ├───2026-05-25_020740
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       ekf_euler.csv
+│   │   │       eskf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260525_020755.json
+│   │           report_20260525_020755.md
+│   │           
+│   ├───2026-05-25_021100
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       ekf_euler.csv
+│   │   │       eskf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260525_021117.json
+│   │           report_20260525_021117.md
+│   │           
+│   ├───2026-05-25_023936
+│   │   └───log
+│   │           sim.log
+│   │           
+│   ├───2026-05-25_024157
+│   │   └───log
+│   │           sim.log
+│   │           
+│   ├───2026-05-25_024335
+│   │   └───log
+│   │           sim.log
+│   │           
+│   ├───2026-05-25_024441
+│   │   └───log
+│   │           sim.log
+│   │           
+│   ├───2026-05-25_024503
+│   │   ├───data
+│   │   │       complementary.csv
+│   │   │       ekf.csv
+│   │   │       ekf_euler.csv
+│   │   │       eskf.csv
+│   │   │       madgwick.csv
+│   │   │       mahony.csv
+│   │   │       noise_sphere.csv
+│   │   │       noise_static.csv
+│   │   │       truth.csv
+│   │   │       
+│   │   ├───fig
+│   │   │       allan_accel.png
+│   │   │       allan_gyro.png
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       fft_accel.png
+│   │   │       fft_gyro.png
+│   │   │       geodesic_error.png
+│   │   │       mag_calibration.png
+│   │   │       psd_accel.png
+│   │   │       psd_gyro.png
+│   │   │       psd_mag.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   ├───log
+│   │   │       sim.log
+│   │   │       
+│   │   └───report
+│   │           report_20260525_024521.json
+│   │           report_20260525_024521.md
+│   │           
+│   ├───data
+│   │       ekf.csv
+│   │       madgwick.csv
+│   │       mahony.csv
+│   │       truth.csv
+│   │       
+│   ├───fig
+│   │   │   attitude_compare.png
+│   │   │   attitude_error_compare.png
+│   │   │   mag_xy_raw.png
+│   │   │   
+│   │   ├───2026-05-18_154220
+│   │   │       attitude_comparison.png
+│   │   │       attitude_error.png
+│   │   │       convergence.png
+│   │   │       geodesic_error.png
+│   │   │       rmse_bar.png
+│   │   │       trajectory_3d.png
+│   │   │       
+│   │   └───2026-05-18_154234
+│   │           attitude_comparison.png
+│   │           attitude_error.png
+│   │           convergence.png
+│   │           geodesic_error.png
+│   │           rmse_bar.png
+│   │           trajectory_3d.png
+│   │           
+│   ├───orientation
+│   │   │   dcm.py
+│   │   │   euler.py
+│   │   │   quaternion.py
+│   │   │   __init__.py
+│   │   │   
+│   │   └───__pycache__
+│   │           dcm.cpython-313.pyc
+│   │           euler.cpython-313.pyc
+│   │           quaternion.cpython-313.pyc
+│   │           transforms.cpython-313.pyc
+│   │           __init__.cpython-313.pyc
+│   │           
+│   └───runs
+│       ├───20260525_043343
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_043544
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_043749
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_044258
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_044415
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_044432
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_050620
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_050656
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_051400
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_054819
+│       │   ├───data
+│       │   │       noise_static.csv
+│       │   │       
+│       │   ├───fig
+│       │   │       allan_accel.png
+│       │   │       allan_gyro.png
+│       │   │       psd_gyro.png
+│       │   │       
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_061542
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_061554
+│       │   ├───data
+│       │   │       noise_sphere.csv
+│       │   │       noise_static.csv
+│       │   │       
+│       │   ├───fig
+│       │   │       allan_accel.png
+│       │   │       allan_gyro.png
+│       │   │       fft_accel.png
+│       │   │       fft_gyro.png
+│       │   │       mag_calibration.png
+│       │   │       psd_accel.png
+│       │   │       psd_gyro.png
+│       │   │       psd_mag.png
+│       │   │       
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_062119
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_062239
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_062307
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_062342
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_062418
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       ├───20260525_062424
+│       │   ├───data
+│       │   ├───fig
+│       │   ├───log
+│       │   │       sim.log
+│       │   │       
+│       │   └───report
+│       └───20260525_062437
+│           ├───data
+│           ├───fig
+│           ├───log
+│           │       sim.log
+│           │       
+│           └───report
+├───config
+│       config.yaml
+│       
+├───export
+├───scripts
+│       analysis_noise.py
+│       check_allan.py
+│       plot_results.py
+│       run_compare.py
+│       
+├───src
+│   ├───ahrs
+│   │   │   main.py
+│   │   │   __init__.py
+│   │   │   
+│   │   ├───core
+│   │   │   │   __init__.py
+│   │   │   │   
+│   │   │   ├───calibration
+│   │   │   │   │   accel_cal.py
+│   │   │   │   │   gyro_cal.py
+│   │   │   │   │   mag_cal.py
+│   │   │   │   │   __init__.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   │           accel_cal.cpython-313.pyc
+│   │   │   │           gyro_cal.cpython-313.pyc
+│   │   │   │           mag_cal.cpython-313.pyc
+│   │   │   │           __init__.cpython-313.pyc
+│   │   │   │           
+│   │   │   ├───env
+│   │   │   │   │   environment.py
+│   │   │   │   │   gravity_field.py
+│   │   │   │   │   magnetic_field.py
+│   │   │   │   │   thermal_field.py
+│   │   │   │   │   __init__.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   │           environment.cpython-313.pyc
+│   │   │   │           gravity_field.cpython-313.pyc
+│   │   │   │           magnetic_field.cpython-313.pyc
+│   │   │   │           thermal_field.cpython-313.pyc
+│   │   │   │           __init__.cpython-313.pyc
+│   │   │   │           
+│   │   │   ├───estimator
+│   │   │   │   │   base.py
+│   │   │   │   │   complementary.py
+│   │   │   │   │   ekf.py
+│   │   │   │   │   ekf_euler.py
+│   │   │   │   │   eskf.py
+│   │   │   │   │   madgwick.py
+│   │   │   │   │   mahony.py
+│   │   │   │   │   __init__.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   │           base.cpython-313.pyc
+│   │   │   │           complementary.cpython-313.pyc
+│   │   │   │           ekf.cpython-313.pyc
+│   │   │   │           ekf_euler.cpython-313.pyc
+│   │   │   │           eskf.cpython-313.pyc
+│   │   │   │           madgwick.cpython-313.pyc
+│   │   │   │           mahony.cpython-313.pyc
+│   │   │   │           __init__.cpython-313.pyc
+│   │   │   │           
+│   │   │   ├───evaluation
+│   │   │   │   │   allan.py
+│   │   │   │   │   fft.py
+│   │   │   │   │   metrics.py
+│   │   │   │   │   psd.py
+│   │   │   │   │   time.py
+│   │   │   │   │   __init__.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   │           allan.cpython-313.pyc
+│   │   │   │           metrics.cpython-313.pyc
+│   │   │   │           psd.cpython-313.pyc
+│   │   │   │           report.cpython-313.pyc
+│   │   │   │           __init__.cpython-313.pyc
+│   │   │   │           
+│   │   │   ├───model
+│   │   │   │   │   accelerometer.py
+│   │   │   │   │   gyroscope.py
+│   │   │   │   │   magnetometer.py
+│   │   │   │   │   sensor.py
+│   │   │   │   │   __init__.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   │           accelerometer.cpython-313.pyc
+│   │   │   │           gyroscope.cpython-313.pyc
+│   │   │   │           magnetometer.cpython-313.pyc
+│   │   │   │           sensor.cpython-313.pyc
+│   │   │   │           __init__.cpython-313.pyc
+│   │   │   │           
+│   │   │   ├───noise
+│   │   │   │   │   colored.py
+│   │   │   │   │   profile.py
+│   │   │   │   │   white.py
+│   │   │   │   │   __init__.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   │           colored.cpython-313.pyc
+│   │   │   │           profile.cpython-313.pyc
+│   │   │   │           white.cpython-313.pyc
+│   │   │   │           __init__.cpython-313.pyc
+│   │   │   │           
+│   │   │   ├───trajectory
+│   │   │   │   │   base.py
+│   │   │   │   │   circular.py
+│   │   │   │   │   figure8.py
+│   │   │   │   │   sinusoidal.py
+│   │   │   │   │   spherical.py
+│   │   │   │   │   static.py
+│   │   │   │   │   __init__.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   │           base.cpython-313.pyc
+│   │   │   │           circular.cpython-313.pyc
+│   │   │   │           figure8.cpython-313.pyc
+│   │   │   │           sinusoidal.cpython-313.pyc
+│   │   │   │           spherical.cpython-313.pyc
+│   │   │   │           static.cpython-313.pyc
+│   │   │   │           __init__.cpython-313.pyc
+│   │   │   │           
+│   │   │   └───__pycache__
+│   │   │           __init__.cpython-313.pyc
+│   │   │           
+│   │   ├───pipeline
+│   │   │   │   builder.py
+│   │   │   │   runner.py
+│   │   │   │   __init__.py
+│   │   │   │   
+│   │   │   ├───stage
+│   │   │   │   │   stage_characterization.py
+│   │   │   │   │   stage_estimation.py
+│   │   │   │   │   stage_export.py
+│   │   │   │   │   stage_report.py
+│   │   │   │   │   
+│   │   │   │   └───__pycache__
+│   │   │   │           stage_characterization.cpython-313.pyc
+│   │   │   │           stage_estimation.cpython-313.pyc
+│   │   │   │           stage_report.cpython-313.pyc
+│   │   │   │           
+│   │   │   └───__pycache__
+│   │   │           builder.cpython-313.pyc
+│   │   │           runner.cpython-313.pyc
+│   │   │           __init__.cpython-313.pyc
+│   │   │           
+│   │   ├───utils
+│   │   │   │   configger.py
+│   │   │   │   exporter.py
+│   │   │   │   logger.py
+│   │   │   │   plotter.py
+│   │   │   │   reporter.py
+│   │   │   │   transforms.py
+│   │   │   │   __init__.py
+│   │   │   │   
+│   │   │   └───__pycache__
+│   │   │           configger.cpython-313.pyc
+│   │   │           exporter.cpython-313.pyc
+│   │   │           logger.cpython-313.pyc
+│   │   │           plotter.cpython-313.pyc
+│   │   │           reporter.cpython-313.pyc
+│   │   │           transforms.cpython-313.pyc
+│   │   │           __init__.cpython-313.pyc
+│   │   │           
+│   │   └───__pycache__
+│   │           base.cpython-313.pyc
+│   │           main.cpython-313.pyc
+│   │           runner.cpython-313.pyc
+│   │           simulation.cpython-313.pyc
+│   │           __init__.cpython-313.pyc
+│   │           
+│   └───ahrs.egg-info
+│           dependency_links.txt
+│           entry_points.txt
+│           PKG-INFO
+│           requires.txt
+│           SOURCES.txt
+│           top_level.txt
+│           
+└───tests
+        __init__.p
 ```
 
 ---
