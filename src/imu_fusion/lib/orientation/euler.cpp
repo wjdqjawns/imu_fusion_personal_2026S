@@ -35,3 +35,10 @@ float magYaw(float mx, float my, float mz, float phi, float theta)
 
     return atan2f(-my_h, mx_h);
 }
+
+float wrapAngle(float a)
+{
+    a = fmodf(a + 3.14159265f, 6.28318530f);
+    if (a < 0.0f) a += 6.28318530f;
+    return a - 3.14159265f;
+}

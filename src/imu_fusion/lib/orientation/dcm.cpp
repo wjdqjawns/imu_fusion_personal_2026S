@@ -74,3 +74,31 @@ Dcm dcmNormalize(const Dcm& R)
 
     return Rn;
 }
+
+// ─── Raw float[9] variants ────────────────────────────────────────────────────
+
+void dcmFromEuler(float phi, float theta, float psi, float R[9])
+{
+    float sp = sinf(phi), cp = cosf(phi);
+    float st = sinf(theta), ct = cosf(theta);
+    float sy = sinf(psi),  cy = cosf(psi);
+
+    // R_body2world for ZYX convention: Rz(psi)*Ry(theta)*Rx(phi), row-major
+    R[0] = cy*ct;               R[1] = cy*st*sp - sy*cp;    R[2] = cy*st*cp + sy*sp;
+    R[3] = sy*ct;               R[4] = sy*st*sp + cy*cp;    R[5] = sy*st*cp - cy*sp;
+    R[6] = -st;                 R[7] = ct*sp;               R[8] = ct*cp;
+}
+
+void dcmTranspose(const float R[9], float RT[9])
+{
+    RT[0]=R[0]; RT[1]=R[3]; RT[2]=R[6];
+    RT[3]=R[1]; RT[4]=R[4]; RT[5]=R[7];
+    RT[6]=R[2]; RT[7]=R[5]; RT[8]=R[8];
+}
+
+void dcmRotate(const float R[9], const float x[3], float y[3])
+{
+    y[0] = R[0]*x[0] + R[1]*x[1] + R[2]*x[2];
+    y[1] = R[3]*x[0] + R[4]*x[1] + R[5]*x[2];
+    y[2] = R[6]*x[0] + R[7]*x[1] + R[8]*x[2];
+}

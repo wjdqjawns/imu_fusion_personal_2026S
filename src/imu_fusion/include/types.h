@@ -1,47 +1,36 @@
 #pragma once
 #include <Arduino.h>
 
-// IMU sensor reading (raw or bias-corrected, same layout)
-typedef struct sImuMeasurement
+#pragma pack(push, 1)
+typedef struct sMsgPacket
 {
-    float ax, ay, az;   // accelerometer [g]
-    float gx, gy, gz;   // gyroscope     [rad/s]
-    float mx, my, mz;   // magnetometer  [uT]
-} sImuMeasurement;
+    uint16_t header;   // 0xAA55
+    uint16_t length;   // bytes from seq to just before crc (42 fixed)
+    uint16_t seq;
+    uint32_t time_us;
+    float ax, ay, az;
+    float gx, gy, gz;
+    float mx, my, mz;
+    uint16_t crc;
+} sMsgPacket;
+#pragma pack(pop)
 
-// Per-axis bias from calibration
-typedef struct sImuNoise
+typedef struct sImuData
 {
-    float ax, ay, az;   // accel bias [g]
-    float gx, gy, gz;   // gyro bias  [rad/s]
-    float mx, my, mz;   // mag bias   [uT]
+    float ax, ay, az;
+    float gx, gy, gz;
+    float mx, my, mz;
+} sImuData;
 
-    // stddev of measurement noise, for EKF process noise covariance
-    float ax_noise, ay_noise, az_noise;   // accel noise stddev [g]
-    float gx_noise, gy_noise, gz_noise;   // gyro noise stddev  [rad/s]
-    float mx_noise, my_noise, mz_noise;   // mag noise stddev
-} sImuNoise;
-
-// Euler angles: ZYX aerospace convention, all in [rad]
-// phi = roll, theta = pitch, psi = yaw
-typedef struct sEulerAngle
+typedef struct sImuBias
 {
-    float phi;
-    float theta;
-    float psi;
-} sEulerAngle;
+    float ax, ay, az;
+    float gx, gy, gz;
+    float mx, my, mz;
+} sImuBias;
 
-// Unit quaternion: q = w + xi + yj + zk
-typedef struct sQuat
-{
-    float w, x, y, z;
-} sQuat;
-
-// Direction Cosine Matrix: row-major 3x3
-// Access element at row r, col c: R.m[r*3 + c]
-typedef struct sDcm
-{
-    float m[9];
-} sDcm;
-
-static constexpr float PI_F = PI;
+constexpr uint16_t MSG_PAYLOAD_LEN = sizeof(sMsgPacket)
+    - sizeof(sMsgPacket::header)
+    - sizeof(sMsgPacket::length)
+    - sizeof(sMsgPacket::seq)
+    - sizeof(sMsgPacket::crc);

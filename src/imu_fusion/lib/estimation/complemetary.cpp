@@ -8,10 +8,7 @@ void cfInit(CfState& s, float phi0, float theta0, float psi0)
     s.psi   = psi0;
 }
 
-void cfUpdate(CfState& s,
-              float gx, float gy, float gz,
-              float ax, float ay, float az,
-              float dt, float alpha)
+void cfUpdate(CfState& s, float gx, float gy, float gz, float ax, float ay, float az, float dt, float alpha)
 {
     // Gyro prediction via Euler kinematics (uses current angle for coupling terms)
     float phi_dot, theta_dot, psi_dot;
@@ -32,9 +29,7 @@ void cfUpdate(CfState& s,
     s.psi   = psi_gyro;  // uncorrected; see cfUpdateYaw
 }
 
-void cfUpdateYaw(CfState& s,
-                 float mx, float my, float mz,
-                 float alpha_yaw)
+void cfUpdateYaw(CfState& s, float mx, float my, float mz, float alpha_yaw)
 {
     float psi_mag = magYaw(mx, my, mz, s.phi, s.theta);
     s.psi = alpha_yaw * s.psi + (1.0f - alpha_yaw) * psi_mag;

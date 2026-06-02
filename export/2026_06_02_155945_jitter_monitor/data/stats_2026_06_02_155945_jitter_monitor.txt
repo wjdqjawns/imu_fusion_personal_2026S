@@ -1,0 +1,13 @@
+Session  : 2026_06_02_155945_jitter_monitor
+Mode     : MOCK
+
+Samples  : 379
+Drops    : 0
+CRC Err  : 0
+
+mean     : 10.0002 ms
+std      : 0.2131 ms
+min      : 9.3620 ms
+max      : 10.6760 ms
+p95      : 10.3803 ms
+p99      : 10.5385 ms

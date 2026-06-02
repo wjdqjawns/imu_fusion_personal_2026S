@@ -8,7 +8,8 @@
 //   euler : ZYX Euler kinematics  (suffers gimbal lock near pitch ±90°)
 //   quat  : Quaternion kinematics (no gimbal lock, requires normalization)
 //   dcm   : DCM kinematics        (no gimbal lock, requires orthonormalization)
-typedef struct {
+typedef struct
+{
     EulerAngle euler;
     Quat       quat;
     Dcm        dcm;

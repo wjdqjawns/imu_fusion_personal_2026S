@@ -3,7 +3,6 @@
 #include "types.h"
 #include "imu_sensor.h"
 
-ImuBias calibrate(ImuSensor& imu, int N = 1000, int delayMs = 3);
-ImuData applyBias(const ImuData& raw, const ImuBias& bias);
-
-void printBias(const ImuBias& b);
+sImuBias calibrate(cImuSensor& imu, int N = 1000, int delayMs = 3);
+sImuData applyBias(const sImuData& raw, const sImuBias& bias);
+void     printBias(const sImuBias& b);

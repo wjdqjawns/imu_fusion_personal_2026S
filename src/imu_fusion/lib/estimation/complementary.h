@@ -2,7 +2,8 @@
 #include "types.h"
 
 // Complementary filter state (Euler angles [rad])
-typedef struct {
+typedef struct
+{
     float phi;    // roll  [rad]
     float theta;  // pitch [rad]
     float psi;    // yaw   [rad] — updated by mag if available
@@ -19,8 +20,6 @@ void cfUpdate(CfState& s,
               float dt, float alpha);
 
 // Update with magnetometer [uT] for yaw correction (call after cfUpdate)
-void cfUpdateYaw(CfState& s,
-                 float mx, float my, float mz,
-                 float alpha_yaw);
+void cfUpdateYaw(CfState& s, float mx, float my, float mz, float alpha_yaw);
 
 EulerAngle cfGetEuler(const CfState& s);

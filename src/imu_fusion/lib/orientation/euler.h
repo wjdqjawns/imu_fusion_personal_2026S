@@ -15,3 +15,6 @@ void accelRollPitch(float ax, float ay, float az, float& phi, float& theta);
 
 // Yaw from magnetometer + known roll/pitch [rad] → [rad]
 float magYaw(float mx, float my, float mz, float phi, float theta);
+
+// Wrap angle to [-π, π]
+float wrapAngle(float a);
