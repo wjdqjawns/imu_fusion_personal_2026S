@@ -8,16 +8,14 @@
 //   f(q) = q* ⊗ g_earth ⊗ q - a_measured
 // using gradient descent to correct the gyro-integrated quaternion.
 // beta controls the gradient step size (larger = faster but noisier).
-typedef struct {
+typedef struct sMadgwickState
+{
     Quat q;   // current attitude quaternion
-} MadgwickState;
+} sMadgwickState;
 
-void madgwickInit(MadgwickState& s);
+void madgwickInit(sMadgwickState& s);
 
 // ax,ay,az [g], gx,gy,gz [rad/s], dt [s], beta from global_var.h
-void madgwickUpdate(MadgwickState& s,
-                    float ax, float ay, float az,
-                    float gx, float gy, float gz,
-                    float dt, float beta);
+void madgwickUpdate(sMadgwickState& s, float ax, float ay, float az, float gx, float gy, float gz, float dt, float beta);
 
-EulerAngle madgwickGetEuler(const MadgwickState& s);
+EulerAngle madgwickGetEuler(const sMadgwickState& s);

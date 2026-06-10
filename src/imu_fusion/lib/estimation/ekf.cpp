@@ -11,17 +11,21 @@ static float norm3(float a, float b, float c)
 
 // S = H*P*H^T + r*I,  K = P*H^T*S^-1,  x += K*(z-h),  P = (I-K*H)*P
 // All large buffers are static to avoid stack overflow on AVR.
-static void ekfKalmanUpdate(EkfState& s,
-    const float H[3][6], const float z[3], const float h[3], float r_noise)
+static void ekfKalmanUpdate(EkfState& s, const float H[3][6], const float z[3], const float h[3], float r_noise)
 {
     static float S[3][3], Sinv[3][3], K[6][3], KH[6][6], Pnew[6][6];
 
     mat3x6_mul_mat6T_plus_R(S, H, s.P, r_noise);
-    if (!mat3_inv(Sinv, S)) return;
+    if (!mat3_inv(Sinv, S))
+    {
+        return;
+    }
+    
     mat6x3_mul_mat3(K, s.P, H, Sinv);
 
     // x += K * (z - h)
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         float upd = 0.0f;
         for (int j = 0; j < 3; j++) upd += K[i][j] * (z[j] - h[j]);
         s.x[i] += upd;
@@ -30,29 +34,34 @@ static void ekfKalmanUpdate(EkfState& s,
 
     // KH = K * H  (6×3 × 3×6 = 6×6)
     for (int i = 0; i < 6; i++)
-        for (int j = 0; j < 6; j++) {
+    {
+        for (int j = 0; j < 6; j++)
+        {
             float v = 0.0f;
             for (int k = 0; k < 3; k++) v += K[i][k] * H[k][j];
             KH[i][j] = v;
         }
+   }
 
     // Pnew = (I - KH) * P
     for (int i = 0; i < 6; i++)
-        for (int j = 0; j < 6; j++) {
+    {
+        for (int j = 0; j < 6; j++)
+        {
             float v = 0.0f;
-            for (int k = 0; k < 6; k++) {
+            for (int k = 0; k < 6; k++)
+            {
                 float ikh = (i == k ? 1.0f : 0.0f) - KH[i][k];
                 v += ikh * s.P[k][j];
             }
             Pnew[i][j] = v;
         }
+    }
     mat6_copy(s.P, Pnew);
 }
 
 // ─── public API ───────────────────────────────────────────────────────────────
-
-void ekfInit(EkfState& s, float phi0, float theta0, float psi0,
-             float mx_ref, float my_ref, float mz_ref)
+void ekfInit(EkfState& s, float phi0, float theta0, float psi0, float mx_ref, float my_ref, float mz_ref)
 {
     s.x[0] = phi0;  s.x[1] = theta0; s.x[2] = psi0;
     s.x[3] = 0.0f;  s.x[4] = 0.0f;  s.x[5] = 0.0f;

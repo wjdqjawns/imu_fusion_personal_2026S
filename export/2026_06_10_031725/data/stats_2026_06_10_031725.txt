@@ -1,0 +1,13 @@
+Session   : 2026_06_10_031725
+Mode      : imu_jitter / MOCK
+
+Samples   : 452
+Drops     : 0
+CRC Err   : 0
+
+mean      : 9.9997 ms
+std       : 0.2223 ms
+min       : 9.4590 ms
+max       : 10.8990 ms
+p95       : 10.3585 ms
+p99       : 10.4765 ms

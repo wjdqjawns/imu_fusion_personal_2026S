@@ -1,0 +1,38 @@
+% =================================================================
+% File Name: main.tex
+% Author: Beomjun Chung
+% Update Date: 2026-06-05
+% Document Type: Paper 2 column (2열 논문형)
+%
+% =================================================================
+
+\documentclass[conference]{IEEEtran}
+
+\makeatletter
+\def\input@path{
+  {asset/}%
+  {bibliography/}%
+  {figures/}%
+  {packages/}%
+  {sections/}%
+}
+\makeatother
+
+\usepackage{packages/paper_general}
+
+\begin{document}
+    \input{01_title.tex}
+    \input{02_abstract.tex}
+
+    % Chapters
+    \input{chapter_01.tex} % Introduction
+    \input{chapter_02.tex} % Related Works
+    \input{chapter_03.tex} % IMU State Estimation
+    \input{chapter_04.tex} % UAV System & Simulation
+    \input{chapter_05.tex} % Discussion
+    \input{chapter_06.tex} % Conclusion
+
+    % References
+    \bibliographystyle{IEEEtran}
+    \bibliography{bibliography/reference}
+\end{document}

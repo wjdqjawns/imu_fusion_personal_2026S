@@ -12,8 +12,7 @@ void cfUpdate(CfState& s, float gx, float gy, float gz, float ax, float ay, floa
 {
     // Gyro prediction via Euler kinematics (uses current angle for coupling terms)
     float phi_dot, theta_dot, psi_dot;
-    eulerKinematics(s.phi, s.theta, gx, gy, gz,
-                    phi_dot, theta_dot, psi_dot);
+    eulerKinematics(s.phi, s.theta, gx, gy, gz, phi_dot, theta_dot, psi_dot);
 
     float phi_gyro   = s.phi   + phi_dot   * dt;
     float theta_gyro = s.theta + theta_dot * dt;

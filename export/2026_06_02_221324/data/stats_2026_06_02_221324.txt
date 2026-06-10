@@ -1,0 +1,13 @@
+Session   : 2026_06_02_221324
+Mode      : monitor / REAL
+
+Samples   : 12520
+Drops     : 0
+CRC Err   : 0
+
+mean      : 10.0000 ms
+std       : 0.0067 ms
+min       : 9.9760 ms
+max       : 10.0280 ms
+p95       : 10.0120 ms
+p99       : 10.0160 ms

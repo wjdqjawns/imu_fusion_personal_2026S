@@ -1,7 +1,10 @@
 #include "quaternion.h"
 #include <math.h>
 
-Quat quatIdentity() { return {1.0f, 0.0f, 0.0f, 0.0f}; }
+Quat quatIdentity()
+{
+    return {1.0f, 0.0f, 0.0f, 0.0f};
+}
 
 float quatNorm(const Quat& q)
 {
@@ -11,12 +14,18 @@ float quatNorm(const Quat& q)
 Quat quatNormalize(const Quat& q)
 {
     float n = quatNorm(q);
-    if (n < 1e-6f) return quatIdentity();
+    if (n < 1e-6f)
+    {
+        return quatIdentity();
+    }
     float inv = 1.0f / n;
     return {q.w*inv, q.x*inv, q.y*inv, q.z*inv};
 }
 
-Quat quatConj(const Quat& q) { return {q.w, -q.x, -q.y, -q.z}; }
+Quat quatConj(const Quat& q)
+{
+    return {q.w, -q.x, -q.y, -q.z};
+}
 
 // Hamilton product; p \kron q
 Quat quatMul(const Quat& p, const Quat& q)

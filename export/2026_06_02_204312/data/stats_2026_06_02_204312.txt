@@ -1,0 +1,13 @@
+Session   : 2026_06_02_204312
+Mode      : monitor / MOCK
+
+Samples   : 22586
+Drops     : 0
+CRC Err   : 0
+
+mean      : 10.0000 ms
+std       : 0.2120 ms
+min       : 9.1130 ms
+max       : 11.0060 ms
+p95       : 10.3510 ms
+p99       : 10.4890 ms

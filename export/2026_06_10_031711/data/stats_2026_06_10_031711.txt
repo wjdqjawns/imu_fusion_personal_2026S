@@ -1,0 +1,13 @@
+Session   : 2026_06_10_031711
+Mode      : jitter / MOCK
+
+Samples   : 706
+Drops     : 0
+CRC Err   : 0
+
+mean      : 10.0003 ms
+std       : 0.2180 ms
+min       : 9.3150 ms
+max       : 10.6920 ms
+p95       : 10.3758 ms
+p99       : 10.4839 ms

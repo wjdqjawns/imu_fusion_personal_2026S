@@ -108,6 +108,8 @@ python scripts/main.py --mode calib --sensor mag   --input data/mag_rotation.csv
 **요구 사항**: PlatformIO
 
 ```bash
+Ctrl + Shift + P
+PlatformIO: Open Core CLI
 cd src/imu_fusion
 pio run --target upload        # 빌드 및 업로드
 pio device monitor             # 시리얼 모니터 (115200 baud)

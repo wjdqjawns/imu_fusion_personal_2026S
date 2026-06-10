@@ -1,0 +1,13 @@
+Session   : 2026_06_10_031636
+Mode      : imu / MOCK
+
+Samples   : 206
+Drops     : 0
+CRC Err   : 0
+
+mean      : 9.9993 ms
+std       : 0.2113 ms
+min       : 9.4160 ms
+max       : 10.6530 ms
+p95       : 10.3504 ms
+p99       : 10.4346 ms

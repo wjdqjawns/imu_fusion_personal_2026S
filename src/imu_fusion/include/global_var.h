@@ -6,16 +6,8 @@
 //------------------------------------------------------------
 #define MODE_RAW
 // #define MODE_CALIBRATION
-// #define MODE_STATE_ESTIMATION
-
-//------------------------------------------------------------
-// Filter selection (MODE_STATE_ESTIMATION)
-//------------------------------------------------------------
-// #define FILTER_GYRO_ONLY
-// #define FILTER_EKF
-// #define FILTER_COMPLEMENTARY
-// #define FILTER_MAHONY
-// #define FILTER_MADGWICK
+// #define MODE_STATE_ESTIMATION         // CSV text, all 5 filters
+// #define MODE_STATE_ESTIMATION_BINARY  // binary framed, all 5 filters
 
 //------------------------------------------------------------
 // Data Framing
@@ -30,7 +22,7 @@ constexpr int      LOOP_MS    = 10;
 constexpr uint32_t LOOP_US    = 10000UL;   // 10ms in microseconds
 constexpr int      CALIB_N    = 500;
 constexpr int      CALIB_DLY  = 5;
-constexpr long     SERIAL_BAUD = 115200;
+constexpr long     SERIAL_BAUD = 230400;  // CSV@100Hz ≈18KB/s; needs ≥230400
 
 //------------------------------------------------------------
 // Math constants

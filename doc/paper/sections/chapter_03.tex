@@ -1,0 +1,89 @@
+\section{IMU 상태 추정}
+\label{sec:imu}
+
+\subsection{센서 모델링 및 노이즈 분석}
+
+MPU-9250은 3축 자이로스코프, 가속도계, AK8963 지자기 센서를 통합한 9-DOF MEMS IMU이다~\cite{invensense2016}.
+I\textsuperscript{2}C를 통해 아두이노 Mega 2560에 \SI{400}{\hertz}로 연결된다.
+자이로스코프 측정 모델은 다음과 같다:
+\begin{equation}
+    \tilde{\boldsymbol{\omega}} = \boldsymbol{\omega} + \mathbf{b}_g + \mathbf{n}_g, \quad
+    \mathbf{n}_g \sim \mathcal{N}(\mathbf{0},\,\sigma_g^2\mathbf{I}),
+    \label{eq:gyro}
+\end{equation}
+여기서 $\boldsymbol{\omega}$는 실제 각속도, $\mathbf{b}_g$는 랜덤 워크 바이어스,
+$\mathbf{n}_g$는 백색 노이즈이다.
+가속도계는 유사한 모델을 따른다:
+\begin{equation}
+    \tilde{\mathbf{a}} = \mathbf{R}^\top(\mathbf{a} - \mathbf{g}) + \mathbf{b}_a + \mathbf{n}_a.
+    \label{eq:accel}
+\end{equation}
+노이즈 파라미터 $\sigma_g$, $\sigma_a$, 바이어스 불안정성은
+Allan 편차 분석~\cite{ieee1998allan}을 통해 \SI{60}{\second} 정적 기록으로부터 추정되며,
+EKF 및 ESKF의 과정 및 측정 노이즈 공분산 $\mathbf{Q}$, $\mathbf{R}$로 사용된다.
+
+\textbf{지터 분석.}
+아두이노 I\textsuperscript{2}C 버스의 샘플링 불규칙성(지터)은
+\num{10000}개의 연속 샘플에 걸쳐 샘플 간 간격 $\Delta t_k$를 기록하여 측정한다.
+명목 \SI{2.5}{\milli\second} 주기로부터의 평균, 표준편차, 최대 편차를 보고한다.
+지터는 모든 자이로스코프 전파 필터에서 시변 적분 오차를 유발하므로,
+필터 업데이트에서 고정 $\Delta t$ 가정의 허용 가능성을 판단하는 데 활용된다.
+
+\subsection{필터 알고리즘}
+
+여섯 가지 필터를 구현하여 비교한다.
+모든 필터는 자세를 단위 쿼터니언 $\mathbf{q} \in \mathbb{H}$로 표현하고
+등가 오일러 각 $(\phi,\theta,\psi)$를 출력한다.
+
+\textbf{자이로스코프 적분}은 보정 없이 식~\eqref{eq:gyro}로부터 순수하게 자세를 전파하여
+드리프트 기준값으로 활용된다.
+
+\textbf{상보 필터}는 스칼라 계수 $\alpha \in (0,1)$를 사용하여
+자이로스코프 각속도와 가속도계 기울기 기준값을 혼합한다:
+\begin{equation}
+    \hat{\boldsymbol{\theta}}_k = \alpha\bigl(\hat{\boldsymbol{\theta}}_{k-1}+\tilde{\boldsymbol{\omega}}_k\Delta t\bigr)
+    + (1-\alpha)\,\boldsymbol{\theta}_{\mathrm{acc},k}.
+\end{equation}
+
+\textbf{Madgwick 필터}~\cite{madgwick2011}는 자이로스코프 전파에 경사 하강 보정을 적용한다:
+\begin{equation}
+    \mathbf{q}_k = \mathbf{q}_{k-1} +
+    \Bigl(\dot{\mathbf{q}}_\omega - \beta\,\tfrac{\nabla f}{\|\nabla f\|}\Bigr)\Delta t,
+\end{equation}
+여기서 $\beta$는 스텝 크기 이득이다.
+
+\textbf{Mahony 필터}~\cite{mahony2008}는 중력 외적 오차
+$\mathbf{e}_k = \hat{\mathbf{a}}_k \times \tilde{\mathbf{a}}_k/\|\tilde{\mathbf{a}}_k\|$에 대한
+PI 피드백을 통해 자이로스코프 바이어스를 0으로 수렴시킨다:
+\begin{equation}
+    \hat{\boldsymbol{\omega}}_k = \tilde{\boldsymbol{\omega}}_k + K_p\mathbf{e}_k + K_i\textstyle\sum\mathbf{e}_k\Delta t.
+\end{equation}
+
+\textbf{EKF}는 상태 $\mathbf{x}=[\mathbf{q}^\top,\mathbf{b}_g^\top]^\top$를 유지하고
+야코비안 $\mathbf{F}_k$를 통해 쿼터니언 운동학을 선형화하여
+$7{\times}7$ 공분산을 전파한다~\cite{bar-shalom2001}.
+
+\textbf{ESKF}~\cite{sola2017}는 명목 쿼터니언(비선형으로 전파)과
+최소 3성분 오차 상태 $\delta\boldsymbol{\theta}$를 분리하여,
+각 업데이트 후 보정값을 주입하고 오차를 0으로 초기화한다.
+이 방식은 표준 EKF 쿼터니언 표현의 과잉 매개변수화 및 선형화 오차를 방지한다.
+
+\subsection{시뮬레이션 결과}
+
+Skydio~2 모델~\cite{deepmind2022}을 기반으로 한 MuJoCo 환경이 기준 자세 궤적을 생성한다.
+3절 A항의 Allan 편차 파라미터에 맞는 센서 노이즈를 시뮬레이션 IMU 출력에 주입하여
+합성 MPU-9250 스트림을 생성한다.
+테스트 궤적은 세 단계로 구성된다: \SI{10}{\second} 호버, \SI{20}{\second} 8자 기동,
+\SI{10}{\second} 적극적 피치/롤 시퀀스.
+각 필터에 대해 기준값 대비 롤 및 피치 RMSE를 계산한다.
+하이퍼파라미터($\alpha$, $\beta$, $K_p/K_i$, $\mathbf{Q}/\mathbf{R}$)는
+별도의 \SI{10}{\second} 호버 검증 구간에서 튜닝한다.
+
+% TODO: 필터별 Roll/Pitch RMSE 테이블 삽입
+% TODO: 롤 각도 시계열 그래프 삽입 (6개 필터 vs 기준값)
+
+아두이노 Mega에서의 실시간 하드웨어 평가 결과,
+모든 여섯 필터가 \SI{400}{\hertz}에서 \SI{2500}{\micro\second} 예산 내에 완료됨을 확인하였으며,
+EKF와 ESKF가 사이클 시간의 가장 큰 부분을 차지하였다.
+
+% TODO: 필터별 사이클 타임 테이블 삽입

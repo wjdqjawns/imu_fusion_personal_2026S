@@ -11,14 +11,12 @@ void mahonyInit(MahonyState& s)
     s.ez_int = 0.0f;
 }
 
-void mahonyUpdate(MahonyState& s,
-                  float ax, float ay, float az,
-                  float gx, float gy, float gz,
-                  float dt, float Kp, float Ki)
+void mahonyUpdate(MahonyState& s, float ax, float ay, float az, float gx, float gy, float gz, float dt, float Kp, float Ki)
 {
     // Skip accelerometer correction if magnitude is unreliable
     float acc_norm = sqrtf(ax*ax + ay*ay + az*az);
-    if (acc_norm < 1e-6f) {
+    if (acc_norm < 1e-6f)
+    {
         s.q = quatIntegrate(s.q, gx, gy, gz, dt);
         return;
     }

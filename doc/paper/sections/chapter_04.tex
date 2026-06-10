@@ -1,0 +1,83 @@
+\section{UAV 시스템 및 시뮬레이션}
+\label{sec:uav}
+
+\subsection{SK450 하드웨어 구조}
+
+SK450은 모터 간 대각선 거리 450\,mm의 쿼드로터 프레임으로
+연구 및 교육 분야에서 널리 활용된다.
+비행 컨트롤러는 PX4 및 ArduPilot 펌웨어와 호환되는 소형 자동 조종 장치인
+CUAV 7 Nano이다.
+주요 하드웨어 구성 요소는 표~\ref{tab:hardware}에 정리되어 있다.
+
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.2}
+\caption{SK450 플랫폼 하드웨어 요약}
+\label{tab:hardware}
+\centering
+\begin{tabular}{ll}
+\hline
+구성 요소 & 사양 \\
+\hline
+프레임     & SK450, 대각선 \SI{450}{\milli\meter} \\
+FC        & CUAV 7 Nano (STM32H7) \\
+펌웨어    & PX4 / ArduPilot (호환) \\
+모터      & % TODO: 모터 KV 값 \\
+ESC       & % TODO: ESC 사양 \\
+프로펠러  & % TODO: 프로펠러 크기 \\
+배터리    & % TODO: 셀 수, 용량 \\
+\hline
+\end{tabular}
+\end{table}
+
+CUAV 7 Nano는 내부 진동 절연 구조를 갖춘 이중 IMU 구성
+(ICM-42688-P 및 ICM-20649)을 통합한다.
+전원 배분, 텔레메트리, RC 수신기 연결은 CUAV 하드웨어 참조 문서~\cite{cuavdocs}에
+문서화된 표준 CUAV 배선 방식을 따른다.
+
+\subsection{PPID 제어기 및 EKF 파이프라인}
+
+PX4와 ArduPilot 모두 커뮤니티 문서에서 PPID로 통칭되는
+계단식 자세 제어기를 구현한다~\cite{px4docs,ardupilotdocs}.
+외부 루프는 쿼터니언 자세 설정값 $\mathbf{q}_d$를 받아
+비례 자세 오차 법칙을 통해 동체 각속도 설정값 $\boldsymbol{\omega}_d$를 생성한다:
+\begin{equation}
+    \boldsymbol{\omega}_d = k_P \, \mathrm{Log}\!\left(\mathbf{q}^{-1} \otimes \mathbf{q}_d\right),
+    \label{eq:att_loop}
+\end{equation}
+여기서 $\mathrm{Log}(\cdot)$는 쿼터니언 오차를 회전 벡터로 사상한다.
+내부 각속도 루프는 각속도 오차 $\boldsymbol{\omega}_d - \hat{\boldsymbol{\omega}}$에
+비례-적분-미분 제어를 적용한다:
+\begin{equation}
+    \boldsymbol{\tau} = k_{P,r}\,\mathbf{e}_r + k_{I,r}\int\mathbf{e}_r\,dt + k_{D,r}\,\dot{\mathbf{e}}_r,
+    \label{eq:rate_loop}
+\end{equation}
+이를 통해 개별 모터 스로틀 신호로 믹싱되는 모터 토크 명령 $\boldsymbol{\tau}$를 생성한다.
+
+PX4(EKF2)와 ArduPilot(EKF3)의 상태 추정은 IMU 사전 적분, 기압 고도,
+GPS, 광학 흐름 데이터를 IMU 주파수에서 동작하는 23상태 EKF로 융합한다~\cite{px4docs}.
+시뮬레이션 연구에서는 3절에서 분석한 구조와 일치하는
+\SI{400}{\hertz}로 동작하는 ESKF를 이용하여 이 파이프라인의 단순화 버전을 구현한다.
+
+\subsection{MuJoCo 시뮬레이션 설정}
+
+시뮬레이션 환경은 사실적인 로터 추력 및 항력 계수를 제공하는
+Google DeepMind MuJoCo Menagerie~\cite{deepmind2022}의 Skydio~2 모델을 활용한다.
+PPID 제어기~\eqref{eq:att_loop}--\eqref{eq:rate_loop}는 Python으로 구현되어
+\SI{500}{\hertz} 제어 주파수에서 \texttt{mujoco.MjData} 인터페이스를 통해 MuJoCo에 연결된다.
+ESKF 상태 추정기는 3절과 동일한 노이즈 파라미터를 사용하여
+노이즈가 주입된 시뮬레이션 IMU 데이터에서 동작한다.
+
+\subsection{비행 시뮬레이션 결과}
+
+세 가지 기동을 평가한다: 롤 및 피치 스텝 자세 명령,
+\SI{30}{\second} 호버 안정성 시험, \SI{20}{\second} 8자 궤적.
+각 기동에 대해 자세 추적 오차, 정착 시간, 정상 상태 진동 진폭을 측정한다.
+
+% TODO: 자세 스텝 응답 그래프 삽입 (롤/피치)
+% TODO: 호버 자세 시계열 그래프 삽입
+% TODO: 추적 오차 지표 테이블 삽입
+
+SK450 플랫폼에서의 실제 비행을 통해 ArduPilot Stabilize 모드에서
+기본 호버 및 수동 자세 제어 안정성을 확인하였다.
+실제 비행 중 외부 기준 자세 센서가 없어 물리적 비행과 시뮬레이션 비행 간의
+정량적 비교는 제한적이며, ArduPilot 온보드 EKF 로그가 간접 기준값으로만 활용된다.

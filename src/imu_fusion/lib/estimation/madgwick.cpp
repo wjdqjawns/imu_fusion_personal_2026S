@@ -3,15 +3,12 @@
 #include "transform.h"
 #include <math.h>
 
-void madgwickInit(MadgwickState& s)
+void madgwickInit(sMadgwickState& s)
 {
     s.q = quatIdentity();
 }
 
-void madgwickUpdate(MadgwickState& s,
-                    float ax, float ay, float az,
-                    float gx, float gy, float gz,
-                    float dt, float beta)
+void madgwickUpdate(sMadgwickState& s, float ax, float ay, float az, float gx, float gy, float gz, float dt, float beta)
 {
     float qw = s.q.w, qx = s.q.x, qy = s.q.y, qz = s.q.z;
 
@@ -24,7 +21,9 @@ void madgwickUpdate(MadgwickState& s,
 
     // ── Gradient correction (accel only) ─────────────────────────────────
     float acc_norm = sqrtf(ax*ax + ay*ay + az*az);
-    if (acc_norm > 1e-6f) {
+
+    if (acc_norm > 1e-6f)
+    {
         ax /= acc_norm; ay /= acc_norm; az /= acc_norm;
 
         // Objective: f = [2(qx*qz - qw*qy) - ax,
@@ -44,7 +43,8 @@ void madgwickUpdate(MadgwickState& s,
         float gz_ =  2.0f*qx*f1 + 2.0f*qy*f2;
 
         float gnorm = sqrtf(gw*gw + gx_*gx_ + gy_*gy_ + gz_*gz_);
-        if (gnorm > 1e-6f) {
+        if (gnorm > 1e-6f)
+        {
             float inv = beta / gnorm;
             qdw -= gw  * inv;
             qdx -= gx_ * inv;
@@ -61,7 +61,7 @@ void madgwickUpdate(MadgwickState& s,
     s.q = quatNormalize(s.q);
 }
 
-EulerAngle madgwickGetEuler(const MadgwickState& s)
+EulerAngle madgwickGetEuler(const sMadgwickState& s)
 {
     return quat2euler(s.q);
 }
