@@ -1,73 +1,87 @@
-\makeatletter
-\def\input@path{{packages/}{vendor/}{sections/}{bibliography/}}
-\makeatother
-
 \documentclass[a4paper,11pt]{article}
 
-\usepackage{packages/general}
-\usepackage{packages/formatting}
+\makeatletter
+\def\input@path{%
+    {asset/}%
+    {bibliography/}%
+    {figures/}%
+    {packages/}%
+    {sections/}%
+    {sections/appendix/}%
+    {sections/chapter/}%
+}
+\makeatother
+
+\usepackage{packages/report_general}
+\usepackage{packages/report_formatting}
+
+% ── 우측 헤더에 표시할 짧은 제목 ────────────────────────
+\reportshort{AHRS Implementation}
 
 \begin{document}
-    \input{00_cover.tex}
-    \newpage
-    \emptypage
+  \input{titlepage.tex}
+  \blankpage
 
-    % Revision History
-    \input{01_revision.tex}
-    \newpage
-    \emptypage
+  % ── Revision History ───────────────────────────────────
+  \markboth{Revision History}{Revision History}
+  \input{revision.tex}
+  \blankpage
 
-    % Abstract
-    \input{02_abstract.tex}
-    \newpage
-    \emptypage
+  % ── Abstract ───────────────────────────────────────────
+  \markboth{Abstract}{Abstract}
+  \input{abstract.tex}
+  \blankpage
 
-    % Table of Contents and List of Figures/Tables
-    \tableofcontents
-    \newpage
-    % \newpage
-    % \listoftables
-    % \newpage
-    \emptypage
-    
-    % Chapters
-    \input{chapter_01.tex}
-    \newpage
-    \input{chapter_02.tex}
-    \newpage
-    \input{chapter_03.tex}
-    \newpage
-    \input{chapter_04.tex}
-    \newpage
-    \input{chapter_05.tex}
-    \newpage
-    \input{chapter_06.tex}
-    \newpage
-    \input{chapter_07.tex}
-    \newpage
-    % \input{chapter_08.tex}
-    % \newpage
-    % \input{chapter_09.tex}
-    % \newpage
-    % \input{chapter_10.tex}
-    % \newpage
-    % \input{chapter_11.tex}
-    % \newpage
-    \emptypage
+  % ── Table of Contents / List of Figures / Tables ───────
+  \markboth{Contents}{Contents}
+  \applyGlobalTocStyle
+  \tableofcontents
+  \clearpage
+  \markboth{List of Figures}{List of Figures}
+  \addcontentsline{toc}{section}{\listfigurename}
+  \listoffigures
+  \clearpage
+  \markboth{List of Tables}{List of Tables}
+  \addcontentsline{toc}{section}{\listtablename}
+  \listoftables
+  \clearpage
+  \blankpage
 
-    % Appendix
-    \addcontentsline{toc}{section}{Appendix}
-    \appendix
-    \appendixpage
-    \appendixformat
+  % ── Chapters ───────────────────────────────────────────
+  % Part 구분이 필요하면 \reportpart{Part Name} 을 챕터 앞에 삽입
+  \input{chapter_01.tex}
+  \clearpage
+  \input{chapter_02.tex}
+  \clearpage
+  \input{chapter_03.tex}
+  \clearpage
+  \input{chapter_04.tex}
+  \clearpage
+  \input{chapter_05.tex}
+  \clearpage
+  \input{chapter_06.tex}
+  \clearpage
+%   \input{chapter_07.tex}
+%   \clearpage
+%   \input{chapter_08.tex}
+%   \clearpage
+%   \input{chapter_09.tex}
+%   \clearpage
+%   \input{chapter_10.tex}
+%   \clearpage
+  \blankpage
 
-    \input{appendix.tex}
-    % \input{appendix_a.tex}
-    % \input{appendix_b.tex}
-    % \input{appendix_c.tex}
-    \newpage
+  % ── References ─────────────────────────────────────────
+  \markboth{References}{References}
+  \bibliographystyle{plain}
+  \bibliography{bibliography/reference}
+  \blankpage
 
-    % References
-    \bibliographystyle{plain}
-    \bibliography{bibliography/reference}
+  % ── Appendix ───────────────────────────────────────────
+  \appendixdivider
+  \input{appendix.tex}
+  \clearpage
+  \blankpage
+
+  \input{endpage.tex}
 \end{document}
